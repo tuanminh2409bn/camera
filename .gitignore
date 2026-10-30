@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.local/
+.runtime/
+recordings/
+evidence/
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+tmp/
+
