@@ -19,6 +19,6 @@
 
 - Add meaningful tests for config validation, credential redaction, probe interpretation, subprocess failures and timeouts. Never soften failures to claim a pass.
 - Record exact commands, runtime versions and actual results in `docs/implementation-status.md`. Mark missing hardware/network measurements as pending, not successful.
-- Required local entry points will be defined by the POC implementation and documented in README. Until they exist, no command or milestone is considered verified.
+- Required local checks: `make check` (compileall, CLI help, unittest) and `python3 scripts/poc.py smoke` with the pinned native binary. `doctor` reports prerequisites without installing them. See README and the checkpoint for verified results and missing tools.
 - Real camera RTSP, router/WireGuard recovery, glass-to-glass latency, mobile browsers and 200-peer load each need independent evidence.
 

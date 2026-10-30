@@ -1,0 +1,9 @@
+{
+  "scheme": "rtsp",
+  "host": "192.0.2.10",
+  "port": 554,
+  "channel": "102",
+  "username": "CHANGE_ME_CAMERA_USER",
+  "password": "CHANGE_ME_CAMERA_PASSWORD",
+  "transport": "tcp"
+}

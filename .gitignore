@@ -11,4 +11,11 @@ __pycache__/
 .venv/
 node_modules/
 tmp/
-
+medimtx*.poc.yml
+mediamtx*.poc.yml
+!infra/docker/compose.poc.yml
+*camera-source*.json
+!infra/mediamtx/camera-source.example.json
+*.wg.conf
+*.key
+*.pem

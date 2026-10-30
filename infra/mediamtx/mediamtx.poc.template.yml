@@ -1,0 +1,63 @@
+# DEV.ONE Secure Live - MediaMTX v1.21.3 Local Loopback POC Reference Template
+#
+# LƯU Ý QUAN TRỌNG:
+# - File này chỉ là mẫu tham khảo cấu trúc cho MediaMTX v1.21.3.
+# - KHÔNG điền mật khẩu hoặc RTSP URL thật vào file này (file được git theo dõi).
+# - Hãy tạo cấu hình chạy thực tế tại `.local/mediamtx.poc.yml` (mode 0600) bằng lệnh:
+#     python3 scripts/poc.py configure --source-file .local/camera-source.json
+# - Cấu hình POC chỉ lắng nghe trên loopback (127.0.0.1), tắt toàn bộ giao thức không dùng
+#   (RTMP, HLS, SRT, MoQ, Metrics, PPROF, Playback, Recording) và KHÔNG phải cơ chế xác thực production.
+
+logLevel: info
+logDestinations: [stdout]
+
+api: yes
+apiAddress: 127.0.0.1:9997
+
+metrics: no
+pprof: no
+playback: no
+
+rtsp: yes
+rtspTransports: [tcp]
+rtspEncryption: "no"
+rtspAddress: 127.0.0.1:8554
+rtpAddress: 127.0.0.1:8000
+rtcpAddress: 127.0.0.1:8001
+
+rtmp: no
+hls: no
+
+webrtc: yes
+webrtcAddress: 127.0.0.1:8889
+webrtcEncryption: no
+webrtcLocalUDPAddress: 127.0.0.1:8189
+webrtcLocalTCPAddress: ""
+webrtcIPsFromInterfaces: no
+webrtcAdditionalHosts: [127.0.0.1]
+webrtcICEServers2: []
+
+srt: no
+moq: no
+
+authMethod: internal
+authInternalUsers:
+  - user: any
+    pass: ""
+    ips: ['127.0.0.1', '::1']
+    permissions:
+      - action: read
+        path: live
+      - action: api
+
+pathDefaults:
+  record: no
+
+paths:
+  live:
+    # Được sinh tự động từ `.local/camera-source.json` qua `python3 scripts/poc.py configure`
+    source: "rtsp://CHANGE_ME_USER:CHANGE_ME_PASS@192.0.2.10:554/Streaming/Channels/102"
+    sourceOnDemand: no
+    rtspTransport: tcp
+    record: no
+    maxReaders: 0
