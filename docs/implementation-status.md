@@ -14,9 +14,11 @@ Current authorized slice: M0-M2 local POC and preparation. Planned entry points:
 
 - Host: Darwin arm64, Python 3.9.6, Node v26.9.0, Git 2.55.0.
 - `docker`, `ffmpeg`, `ffprobe`, `shellcheck` were not found on PATH during preflight. No system tools installed.
-- Camera/router/IP/credentials and VPS access have not been provided. No device was scanned or configured.
-- Antigravity preflight catalog did not contain default `claude-sonnet-5-5-medium`; doctor returned `Selected model is absent from agy models`. This is a missing-model blocker, not quota exhaustion. User confirmation for Argon or direct implementation is pending.
-- Catalog does contain `gemini-4-argon-high`. Inference access has not been established. No worker has run.
+- User confirmed camera and ER605 are not connected yet. Camera/router/IP/credentials and VPS access have not been provided. No device was scanned or configured.
+- Antigravity preflight catalog did not contain default `claude-sonnet-5-5-medium`; doctor returned `Selected model is absent from agy models`. This is a missing-model blocker, not quota exhaustion. User explicitly authorized `gemini-4-argon-high` for this POC after reviewing the blocker.
+- Catalog does contain `gemini-4-argon-high`. Doctor passed for Argon: account route, credit overages disabled; inference access has not yet been established. Selected Argon for the multi-file local POC tools/config/docs slice. No worker has run.
+
+- Downloaded official MediaMTX v1.21.3 Darwin arm64 archive to ignored `.local/tools/mediamtx-1.21.3`; SHA256 `bc1a0762fd18ffb413bcd81dcb9a072ac159fbd1f27e79ac6f14598aaac5ed3f` verified. `mediamtx --version` returned v1.21.3 (exit 0). No server or real media has been started.
 
 ## Milestones
 
@@ -30,4 +32,4 @@ Current authorized slice: M0-M2 local POC and preparation. Planned entry points:
 
 ## Boundaries and next step
 
-Prepare the implementation packet and baseline while model selection is pending. Keep original PDF and plan unchanged. Record worker model, task ID, head/fingerprint and exact independent verification after implementation. Do not mark any hardware, latency or capacity gate complete using synthetic output.
+Prepare the immutable Argon implementation packet from the reviewed clean baseline. Keep original PDF and plan unchanged. Record worker model, task ID, head/fingerprint and exact independent verification after implementation. Do not mark any hardware, latency or capacity gate complete using synthetic output.
