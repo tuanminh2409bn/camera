@@ -1,15 +1,37 @@
-# Đấu nối cho POC M0-M1
+# Đấu nối POC trên Windows
 
-Thiết bị chưa được nối, theo xác nhận của người dùng ngày 30/10/2026. Hướng dẫn này dựa trên ảnh cổng/tem đã xem; chưa xác minh firmware hoặc nguồn PoE thực tế.
+Sau khi dừng Mac ngày 01/11/2026, bắt đầu từ [HANDOFF_WINDOWS.md](../HANDOFF_WINDOWS.md).
 
-1. Cấp nguồn đúng adapter cho ER605 và switch. Camera ghi PoE 802.3at Class 4; cần xác nhận switch/adapter đáp ứng trước khi thử.
-2. Dùng Ethernet nối **camera → switch cổng PoE 1**.
-3. Nối **switch cổng 5 UPLINK → ER605 cổng 4 LAN**.
-4. Nối **Mac mini → ER605 cổng 5 LAN** bằng Ethernet. Khi thử LAN chưa cần đổi cấu hình WAN hoặc mạng Internet đang dùng của Mac.
-5. Khi thử WAN/VPN, nối **modem/ONT → ER605 cổng 1 WAN**; DHCP/PPPoE phải xác minh với nhà mạng trước khi đổi cấu hình.
-6. Xác định IP camera từ DHCP lease hoặc công cụ/giao diện thiết bị được phép dùng. Ghi nhận firmware ER605/camera và sao lưu trước khi chỉnh. Không đoán camera có IP ví dụ trong tài liệu.
-7. Tạo file `.local/camera-source.json` mode `0600` từ mẫu, nhập IP và tài khoản RTSP thật tại máy. Không đưa mật khẩu vào chat. Xem lệnh configure/probe/run trong README.
+## Sơ đồ
 
-Chỉ xác nhận camera online khi có video RTSP thật. Tiếp theo mới đo codec và glass-to-glass; xem được trang player không chứng minh đã nhận nguồn. Dừng nếu nguồn, PoE, model hoặc đường quản trị chưa được xác minh; không reset router hoặc nạp firmware để thử đoán.
+1. Camera → switch PoE 1.
+2. Switch UPLINK 5 → ER605 LAN 4.
+3. Windows → ER605 LAN 5.
+4. Wi-Fi Windows giữ Internet cho Codex.
+5. Mac không cần trong tuyến mới.
 
-Đã thấy trên ảnh: camera `DS-2CD2643G2-LIZS2UHUN`, switch `DS-3E1505P-EI/M`, router `ER605 UN/2.30`. Firmware, PoE budget và địa chỉ IP vẫn chưa biết. Các mã định danh/khóa trên ảnh không được chép vào tài liệu này.
+Camera đã Activated; lần cuối DHCP 192.168.0.101/24, gateway 192.168.0.1. Dò lại khi lease/mạng thay đổi; không đoán theo IP cũ 10.20.0.10, 192.168.1.64 hoặc 169.254.39.226. Switch quản trị vẫn 10.20.0.254/24.
+
+## Chuẩn bị
+
+- Intel 82579LM cần có link. Code 10 trước đó đã được người dùng xử lý bằng Disable/Enable riêng NIC.
+- Đọc IP/route/metric trước khi chỉnh; nếu ER605 chưa có WAN, default Ethernet có thể làm Codex mất Internet. W1 trong bản bàn giao có quy trình ưu tiên Wi-Fi và rollback.
+- Ghi giá trị trước/sau mọi thay đổi mạng; không sửa DNS/gateway hoặc tắt adapter hàng loạt.
+- Kiểm tra PoE thực khi cảnh tối/đèn bật; tem/model không chứng minh đủ công suất.
+- Backup camera/router trước thay đổi. Chưa có backup được nghiệm thu.
+
+## Xác thực
+
+Ảnh Windows: admin vào được .101; web limit 50, một dòng online; HTTP/RTSP digest/MD5; RTSP 554. Người dùng xác nhận IP/MAC filters tắt và không có log để xác định lỗi.
+
+Mac vẫn 401 cả web/API/RTSP và thử IP nguồn riêng; nguyên nhân chưa biết. Người dùng khẳng định mật khẩu đúng. Không reset/kích hoạt lại, đổi mật khẩu hay tắt bảo vệ để thử đoán. Windows HTTP Digest stateless và RTSP chưa có kết quả.
+
+## Profile camera
+
+H.264 thường, 1280×720, 25fps, chỉ video/no audio; đo 0 B-frame thật; bắt đầu GOP 25, CBR khoảng 1,5 Mbps. Đọc khả năng main/sub trước chọn 101/102. Backup trước, chỉ chỉnh khi người dùng bắt đầu phiên Windows.
+
+Không mở camera/admin/RTSP public, không tự đổi WAN/firmware/router/ACL. Chưa cần máy onsite bổ sung.
+
+## Mac đã dọn
+
+Alias/route thử được gỡ; runtime, công cụ, báo cáo và private credential đã xóa. Giữ Wi-Fi ưu tiên, DHCP Ethernet bình thường; không lặp lại alias/route chẩn đoán cũ. Source/tests giữ để port Windows; xem checkpoint cho giới hạn bằng chứng.

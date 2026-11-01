@@ -19,3 +19,5 @@ mediamtx*.poc.yml
 *.wg.conf
 *.key
 *.pem
+# Original device-label photos contain identifiers and may include device keys.
+images/

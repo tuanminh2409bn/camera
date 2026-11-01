@@ -3,24 +3,26 @@
 Tài liệu này cụ thể hóa điều kiện qua cổng cho giai đoạn **M0 → M1 → M2** theo [`KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md`](../KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md).
 **Quy tắc bắt buộc:** Không đánh dấu `PASS` cho bất kỳ hạng mục phần cứng, mạng hoặc độ trễ nào khi chỉ mới chạy dữ liệu giả lập (synthetic).
 
+Cập nhật 01/11/2026: đã dừng kiểm thử trên Mac và dọn runtime. Các kết quả phần mềm bên dưới là lịch sử macOS; Windows phải làm W0 trong [bản bàn giao](../HANDOFF_WINDOWS.md) và xác minh lại. Các lệnh Python dưới đây là tham chiếu chức năng; dùng interpreter Windows sau khi port, không chạy lại trên Mac theo yêu cầu hiện tại.
+
 ## 1. Cổng M0: Kiểm kê thiết bị và khóa thiết kế POC
 
 | Mã kiểm tra | Nội dung yêu cầu | Bằng chứng cần có | Trạng thái hiện tại |
 |---|---|---|---|
-| `M0-INV-01` | Xác nhận đúng mã model/suffix và firmware thực tế của camera Hikvision | Cập nhật bảng trong [`m0-device-inventory.md`](m0-device-inventory.md) | `PENDING` |
+| `M0-INV-01` | Xác nhận đúng mã model/suffix và firmware thực tế của camera Hikvision | Cập nhật bảng trong [`m0-device-inventory.md`](m0-device-inventory.md) | `PARTIAL: model/firmware SADP đã đọc, chưa đối chiếu UI` |
 | `M0-INV-02` | Xác nhận hardware version (ví dụ `UN v2.30`) và firmware của router TP-Link ER605 | Cập nhật bảng trong [`m0-device-inventory.md`](m0-device-inventory.md) | `PENDING` |
 | `M0-INV-03` | Xác nhận ngân sách PoE (PoE budget), cáp mạng và tốc độ cổng LAN không bị drop | Số liệu kiểm tra thực tế trên switch/router | `PENDING` |
 | `M0-BAK-01` | Sao lưu cấu hình gốc của camera và ER605 trước khi chỉnh sửa | Bản backup lưu bảo mật ngoài git | `PENDING` |
-| `M0-SW-01` | Bộ công cụ POC cục bộ (`scripts/poc.py`), kiểm tra cấu hình/redaction/permissions và unit tests | `python3 -m unittest discover -s tests -v` | `Verified (Local Software Unit Tests)` |
+| `M0-SW-01` | Bộ công cụ POC cục bộ (`scripts/poc.py`), kiểm tra cấu hình/redaction/permissions và unit tests | `python3 -m unittest discover -s tests -v` | `LỊCH SỬ macOS: 22 tests PASS; Windows PENDING` |
 
 ## 2. Cổng M1: LAN Baseline, Codec Gate và Sàn độ trễ
 
 | Mã kiểm tra | Tham chiếu Kế hoạch | Điều kiện đạt (Pass Criteria) | Lệnh / Quy trình kiểm chứng | Trạng thái hiện tại |
 |---|---|---|---|---|
-| `M1-SW-SMOKE` | POC Local Runtime | MediaMTX `v1.21.3` chạy trên loopback `127.0.0.1`, parse hợp lệ file config `0600` (`moq: no`), trang player tích hợp mở được và tiến trình dừng sạch sẽ | `python3 scripts/poc.py smoke` | `VERIFIED (Native v1.21.3; chưa có video nguồn)` |
-| `CODEC-01` | Mục 5.1 & 9.3 | Luồng thật từ camera đạt đúng `H.264`, `1280x720`, `25 fps`, **không có audio**, **0 B-frame quan sát được** trong mẫu ≥ 60 giây (~1.500 frame), đo được GOP thực tế | `python3 scripts/poc.py probe --source-file .local/camera-source.json --duration 60` | `PENDING (Chưa kết nối camera & thiếu ffprobe trên PATH)` |
-| `M1-PLAYER-01` | Mục 5.3 & 7 (M1) | Trình duyệt thực mở `http://127.0.0.1:8889/live`, hiển thị hình ảnh chuyển động thực từ camera qua WebRTC loopback | Mở trình duyệt trên máy trạm kết nối LAN với camera | `PENDING (Chưa kết nối camera)` |
-| `LAT-01` | Mục 7 (M1) & 9.1 | Đo độ trễ quang học glass-to-glass trong LAN (hướng tới LAN p95 ≤ 400 ms để còn ngân sách cho WAN), thử cả cảnh sáng và tối, chạy ≥ 60 phút cho profile được chọn | Theo [`latency-measurement-procedure.md`](latency-measurement-procedure.md) | `PENDING (Chưa kết nối camera)` |
+| `M1-SW-SMOKE` | POC Local Runtime | MediaMTX `v1.21.3` chạy trên loopback `127.0.0.1`, parse file config riêng tư (`0600` POSIX / ACL Windows; `moq: no`), trang player tích hợp mở được và tiến trình dừng sạch sẽ | `python3 scripts/poc.py smoke` | `LỊCH SỬ macOS native v1.21.3; chưa video; Windows PENDING` |
+| `CODEC-01` | Mục 5.1 & 9.3 | Luồng thật từ camera đạt đúng `H.264`, `1280x720`, `25 fps`, **không có audio**, **0 B-frame quan sát được** trong mẫu ≥ 60 giây (~1.500 frame), đo được GOP thực tế | `python3 scripts/poc.py probe --source-file .local/camera-source.json --duration 60` | `PENDING: chưa RTSP có xác thực/frame thật; chuyển Windows` |
+| `M1-PLAYER-01` | Mục 5.3 & 7 (M1) | Trình duyệt thực mở `http://127.0.0.1:8889/live`, hiển thị hình ảnh chuyển động thực từ camera qua WebRTC loopback | Mở trình duyệt trên máy trạm kết nối LAN với camera | `PENDING: chưa WebRTC video thật` |
+| `LAT-01` | Mục 7 (M1) & 9.1 | Đo độ trễ quang học glass-to-glass trong LAN (hướng tới LAN p95 ≤ 400 ms để còn ngân sách cho WAN), thử cả cảnh sáng và tối, chạy ≥ 60 phút cho profile được chọn | Theo [`latency-measurement-procedure.md`](latency-measurement-procedure.md) | `PENDING: chưa có số đo glass-to-glass` |
 
 ## 3. Cổng M2: Singapore VPS và Đường hầm WireGuard
 
