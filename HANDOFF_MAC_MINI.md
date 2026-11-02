@@ -76,6 +76,8 @@ Không thêm alias/route, flush bảng route hoặc chạy lại `.local/check-m
 
 ## 6. Kiểm tra phần mềm và việc tiếp theo
 
+Kế hoạch hiện hành là [v2 ngày 02/11](KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md); PDF root cũng đã cập nhật v2. Ưu tiên P0 (classifier lỗi publisher, che token, cấu hình recording/publisher tái tạo được), quan sát P1 song song, rồi P2 WAN → P3 web → P4 tải/thực địa. Bản gốc và các runbook tuyến cũ đã bỏ khỏi checkout; dùng lịch sử Git khi cần truy vết. Snapshot 17:27 bên trên là lịch sử; lần đọc mới 17:55 nằm trong checkpoint.
+
 Trên Mini, `make check` = compileall + CLI help + Python unittest, không phải khởi động MediaMTX thật. Test supervisor cần Perl native Air:
 
 ```sh

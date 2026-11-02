@@ -31,14 +31,12 @@ Trong chat mới, yêu cầu Codex đọc `AGENTS.md`, `HANDOFF_MAC_MINI.md` và
 | [infra/macos/](infra/macos/) | Plist mẫu session-only; không chứa cấu hình private hay credential |
 | [docs/air-recording-service.md](docs/air-recording-service.md) | Vận hành và phát lại cục bộ trên Air |
 | [infra/mediamtx/](infra/mediamtx/) | JSON/YAML mẫu loopback; khác với private recording config đang chạy |
-| [infra/vpn/](infra/vpn/) và [infra/docker/](infra/docker/) | Các phương án tham khảo, chưa phải tuyến runtime hiện tại |
 
 ## Kiểm tra và tài liệu
 
 `make check` trên Mini kiểm tra Python/CLI/unit fixtures. Những lệnh bắt đầu camera/native runtime là thao tác riêng, không cần để đọc bản bàn giao. Xem kết quả và giới hạn tại [checkpoint](docs/implementation-status.md).
 
 - [Đấu nối hiện tại](docs/hardware-setup.md), [kiểm kê](docs/m0-device-inventory.md), [các cổng triển khai](docs/m0-m2-checklist.md).
-- [Kế hoạch gốc](KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md) và PDF gốc được giữ nguyên; thay đổi tuyến Air được ghi trong checkpoint.
-- [Quy trình đo quang học](docs/latency-measurement-procedure.md) giữ làm tham khảo; người dùng đã miễn bài đo này cho đánh giá LAN hiện tại.
+- [Kế hoạch v2](KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md) và [PDF v2](DEVONE_Secure_Live_Codex_Blueprint_Ban_Moi_20261030.pdf): hiện trạng, quyết định mở và gói P0-P4. Các bản kế hoạch cũ chỉ còn trong lịch sử Git.
 
 Thứ tự mạng gốc của Mini đã khôi phục: Ethernet → Thunderbolt Bridge → Wi-Fi. Ethernet đang inactive nên Internet hiện vẫn qua Wi-Fi. Không có kết luận rằng thay thứ tự mạng đã xử lý nguyên nhân restart trước đây.

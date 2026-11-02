@@ -1,6 +1,6 @@
 # Các cổng triển khai hiện tại
 
-Theo [kế hoạch gốc](../KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md), cập nhật tuyến đã được người dùng chọn: Mac mini phát triển, Air onsite nhận/ghi camera qua AP Wi-Fi. ER605/WireGuard là phương án tham khảo, không tự nối lại để đạt gate cũ.
+Theo [kế hoạch v2](../KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md), cập nhật tuyến đã được người dùng chọn: Mac mini phát triển, Air onsite nhận/ghi camera qua AP Wi-Fi. ER605/WireGuard là phương án tham khảo, không tự nối lại để đạt gate cũ.
 
 Không đánh dấu phần cứng/mạng/latency PASS bằng unit test hoặc synthetic. Snapshot và lệnh kiểm tra nằm trong [checkpoint](implementation-status.md).
 

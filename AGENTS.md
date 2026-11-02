@@ -5,7 +5,7 @@
 - Đọc `HANDOFF_MAC_MINI.md`, `docs/implementation-status.md` và `docs/air-recording-service.md` trước khi tiếp tục. Kiểm tra HEAD/working tree thực tế; các PID, IP, dung lượng và trạng thái trong tài liệu là snapshot.
 - Mac mini là máy phát triển duy nhất, checkout `/Volumes/Developer/Projects/camera`. MacBook Air là máy chạy MediaMTX/ghi hình tại điểm camera, workspace `/Users/macbook/Developer/camera`; không nhầm hai máy khi chạy lệnh.
 - Codex tự triển khai, review và kiểm thử trực tiếp theo `dev-flow`. Không dùng Antigravity, `agy` hoặc bridge/worker cũ. Không tự phục hồi những công cụ đã gỡ.
-- Các yêu cầu hiện tại thay thế hướng bàn giao và các tuyến đấu nối cũ. PDF/kế hoạch gốc giữ nguyên để truy vết; trạng thái thực tế và các thay đổi được người dùng chọn nằm trong bản bàn giao mới.
+- Các yêu cầu hiện tại thay thế hướng bàn giao và các tuyến đấu nối cũ. Kế hoạch Markdown và PDF tại root đã cập nhật v2 ngày 02/11/2026; bản gốc 30/10 và các runbook tuyến cũ đã bỏ khỏi checkout theo yêu cầu người dùng; truy vết bằng lịch sử Git. Đọc kế hoạch v2 cùng bàn giao/checkpoint; không dùng bản lịch sử để triển khai.
 
 ## Tuyến và phạm vi hiện tại
 

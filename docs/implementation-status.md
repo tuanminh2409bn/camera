@@ -8,9 +8,9 @@ Cập nhật 02/11/2026. Tài liệu này mô tả snapshot hiện tại, thay c
 - Skill dev-flow đã đồng bộ đủ16/16file với commit `caefff8d7b82ec0f9facda875ef25c87bf55675e` từ `tuanminh2409bn/dev-flow-macos`; global rules riêng vẫn giữ. Không có cơ chế tự gọi lại worker.
 - Camera → switch PoE → LAN bộ phát Wi-Fi; Mini/Air dùng cùng Wi-Fi. Camera192.168.1.64/24 static, Mini192.168.1.8, Air192.168.1.12 tại snapshot. ER605 không tham gia tuyến. Không cấu hình lại DHCP/IP để khớp các địa chỉ lịch sử.
 - Mục tiêu người xem Lào/VN. LAN WebRTC được người dùng chấp nhận trực quan theo mục tiêu1giây và miễn bài đo optical. Ghi `USER-ACCEPTED/VISUAL`, không chuyển thành p95 đã đo. WAN/VPS/website Admin chưa triển khai.
-- PDF và kế hoạch gốc giữ nguyên để truy vết; tuyến Air onsite hiện tại là thay đổi đã được người dùng chọn so với thiết kế gốc không Edge.
+- PDF và kế hoạch root đã cập nhật [v2](../KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md); bản gốc và runbook tuyến cũ đã bỏ khỏi checkout; truy vết bằng Git. Tuyến Air onsite là thay đổi đã được người dùng chọn so với thiết kế ban đầu.
 
-## 2. Snapshot Air mới nhất — 17:27:39+07 ngày 02/11
+## 2. Snapshot Air commissioning — 17:27:39+07 ngày 02/11
 
 Đọc qua SSH strict host trust, không restart/update runtime và không xác thực camera thêm:
 
@@ -91,3 +91,15 @@ Hai panic report trước đây có `SOCD report detected: (iBoot async abort)`;
 Endurance24h/retention dữ liệu thật đủ24h, recovery mất nguồn/reboot/WAN, auto-start bền vững, VPN bảo trì, publisher outbound tới server có xác thực/mã hóa, VPS/network Lào–Việt Nam, mobile/load200peers và Admin web/RBAC còn chưa triển khai/nghiệm thu. Kế hoạch tiếp theo nằm trong bản bàn giao; mọi chi phí/hạ tầng/persistent access cần quyền mới.
 
 Nguồn cơ chế: [MediaMTX record](https://mediamtx.org/docs/features/record), [playback](https://mediamtx.org/docs/features/playback), [cleaner1.21.3](https://github.com/bluenviron/mediamtx/blob/v1.21.3/internal/recordcleaner/cleaner.go), [API1.21.3](https://github.com/bluenviron/mediamtx/blob/v1.21.3/api/openapi.yaml), [FFmpeg download](https://ffmpeg.org/download.html), [Evermeet Intel builds](https://evermeet.cx/ffmpeg/).
+
+## 8. Kế hoạch v2 và dọn tuyến cũ - 02/11/2026
+
+Theo yêu cầu người dùng, kế hoạch Markdown/PDF root là bản v2 hiện hành. Đã bỏ bản archive ngày 30/10, runbook/template ER605-WireGuard, Docker Compose POC tham khảo và quy trình đo LAN cũ khỏi checkout. Bản từng commit còn trong lịch sử Git; không rewrite history. CLI/tests hiện có được giữ vì việc dọn tài liệu không thay hợp đồng công cụ.
+
+Snapshot đọc SSH allowlist lúc 17:55:53+07: supervisor running/ok, status cập nhật 17:55:46; H264 ready từ 16:32:53.622655+07, bytesReceived 1.250.917.160; record=true, pause/latch=false; SSD trống 99.196.829.696 byte. Retention=1d, segment=1m. Không đếm lại file/listener/launchd ở lần đọc này. Chưa đạt 24h.
+
+P0 guards/config → P2 WAN → P3 web → P4 tải/thực địa; quan sát P1 song song. VPS/traffic, nơi lưu bản ghi website và auto-start còn mở. Dòng WHIPS destination 401 giả bị classifier nhận nhầm camera_auth_failure: phải sửa trước khi bật publisher; chưa sửa source trong đợt tài liệu này.
+
+Kiểm tra: PDF 8 trang dựng từ Markdown và kiểm hình; liên kết Markdown, git diff --check, plist lint, ignore runtime và scan mẫu credential. Kết quả kiểm phần mềm và publish được ghi cùng commit sau khi xác minh. Không tác động phiên ghi Air, dữ liệu video, credential hoặc backup thiết bị.
+
+Xác minh trước commit dọn tuyến cũ: `make check` trên Mini PASS 22 tests/1,855s; `plutil -lint infra/macos/recording-agent.plist.example` PASS; `git diff --check` PASS. Python kiểm toàn bộ link nội bộ Markdown còn tồn tại/fences/mẫu private-key và URL credential: PASS. PDF đọc lại đủ 8 trang, không còn tham chiếu archive/VPN cũ; render các trang nội dung thay đổi không tràn/cắt. `git fetch origin` và `git rev-list --left-right --count HEAD...origin/main` trả 0/0 trước commit. Người dùng đã cho phép commit/push lần dọn này; không force-push.
