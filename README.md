@@ -1,46 +1,44 @@
-# DEV.ONE Secure Live — tiếp tục trên Windows
+# DEV.ONE Secure Live
 
-Đọc **[HANDOFF_WINDOWS.md](HANDOFF_WINDOWS.md)**: trạng thái thiết bị, cách mở Codex Windows, công việc đầu tiên và prompt khởi động.
+Phát triển trực tiếp trên **Mac mini**; **MacBook Air** chạy luồng camera và ghi hình tại điểm đặt. Đọc [bản bàn giao cho chat mới](HANDOFF_MAC_MINI.md) rồi [trạng thái triển khai](docs/implementation-status.md).
 
-Ngày 01/11/2026, người dùng dừng toàn bộ kiểm thử trên Mac và chuyển sang Windows. Giữ source POC/tests; runtime, công cụ tải về, mật khẩu và báo cáo thử trên Mac đã xóa. Không có thông tin đăng nhập thật trong repo.
+## Trạng thái hiện tại
 
-## Bắt đầu
+- Camera thật → switch PoE → bộ phát Wi-Fi → Air nhận RTSP bằng MediaMTX v1.21.3 → WebRTC loopback trên Air.
+- Kênh101 H.264 Baseline720p/25fps, không âm thanh; mẫu ghi65 giây đạt codec gate, không B-frame. Người dùng chấp nhận tốc độ xem bằng mắt theo mục tiêu1 giây, chưa có số đo p95.
+- Air đang ghi SSD theo phiên đăng nhập, giữ khoảng24h, tự dọn theo chu kỳ tối đa30 phút và giữ reserve15GiB. Playback cục bộ có xác thực; chưa có website Admin. Phiên ghi chưa được nghiệm thu đủ24h.
+- ER605 không tham gia tuyến hiện tại. Publisher WAN/VPS/HTTPS, bảo trì từ xa và tải200 người xem chưa triển khai.
 
-~~~powershell
+## Mở dự án
+
+Checkout hiện dùng: `/Volumes/Developer/Projects/camera`. Trên máy phát triển mới, clone source rồi chuẩn bị file riêng tư tại máy; repo không có mật khẩu, key hoặc runtime:
+
+```sh
 git clone https://github.com/tuanminh2409bn/camera.git
-Set-Location camera
-~~~
+cd camera
+```
 
-Mở thư mục trong Codex, đọc AGENTS.md và bản bàn giao. CLI còn giả định macOS/POSIX; **W0 là bổ sung Windows native**, chưa được nghiệm thu Windows.
+Trong chat mới, yêu cầu Codex đọc `AGENTS.md`, `HANDOFF_MAC_MINI.md` và checkpoint; kiểm tra trạng thái Air bằng thao tác chỉ đọc trước khi sửa. Không tạo phiên MediaMTX thứ hai, thêm IP/route tạm hoặc chạy lại helper mạng đã vô hiệu hóa.
 
-## Mục tiêu
-
-Camera Hikvision → switch PoE → ER605/WireGuard → MediaMTX Singapore → WebRTC tại Lào/Việt Nam. H.264 1280×720/25fps, không audio; p95 glass-to-glass ≤1.000 ms, hướng tới p50 ≤500 ms. Không có Edge Agent tại điểm đặt camera.
-
-Chỉ M0–M2 trước; website/API/DB production, recording và tải 200 peers vẫn theo các cổng mạng/video/độ trễ thực tế.
-
-## Nội dung
+## Bản đồ dự án
 
 | Đường dẫn | Vai trò |
 |---|---|
-| scripts/poc.py | Python stdlib: config, installer ghim hash, runtime có giới hạn, redaction, probe/analyze |
-| tests/ và Makefile | Tests/lệnh kiểm tra; 22 tests từng đạt trên Mac |
-| infra/mediamtx/ | Mẫu JSON/YAML loopback, không có credential thật |
-| infra/docker/ | Linux/Docker tham khảo, chưa chạy trên Windows |
-| infra/vpn/ | Runbook thủ công ER605/WireGuard/VPS |
-| docs/ | Kiểm kê, cổng nghiệm thu, đo độ trễ, checkpoint |
-| PDF và kế hoạch gốc | Giữ nguyên tài liệu đã duyệt |
+| [HANDOFF_MAC_MINI.md](HANDOFF_MAC_MINI.md) | Máy phát triển/runtime, SSH, dữ liệu riêng tư, việc tiếp theo và prompt khởi động |
+| [scripts/poc.py](scripts/poc.py) | CLI Python stdlib cho config, cài runtime ghim hash, probe/analyze và POC có thời hạn |
+| [scripts/air_recording_supervisor.pl](scripts/air_recording_supervisor.pl) | Giám sát native recording: lock, redaction, auth latch, disk reserve và cleanup |
+| [tests/](tests/) và [Makefile](Makefile) | Kiểm thử phần mềm; supervisor dùng Perl trên Air |
+| [infra/macos/](infra/macos/) | Plist mẫu session-only; không chứa cấu hình private hay credential |
+| [docs/air-recording-service.md](docs/air-recording-service.md) | Vận hành và phát lại cục bộ trên Air |
+| [infra/mediamtx/](infra/mediamtx/) | JSON/YAML mẫu loopback; khác với private recording config đang chạy |
+| [infra/vpn/](infra/vpn/) và [infra/docker/](infra/docker/) | Các phương án tham khảo, chưa phải tuyến runtime hiện tại |
 
-Camera Activated, lần cuối DHCP 192.168.0.101; web Windows đã vào được. HTTP/RTSP digest/MD5. Chưa có video RTSP, codec, WebRTC video, latency, VPN hoặc Windows runtime được xác minh.
+## Kiểm tra và tài liệu
 
-Mac trước đây đạt make check và smoke native v1.21.3; smoke chỉ có listener/API/player, không giải mã video. Đọc [checkpoint](docs/implementation-status.md) để biết giới hạn bằng chứng.
+`make check` trên Mini kiểm tra Python/CLI/unit fixtures. Những lệnh bắt đầu camera/native runtime là thao tác riêng, không cần để đọc bản bàn giao. Xem kết quả và giới hạn tại [checkpoint](docs/implementation-status.md).
 
-## Tài liệu
+- [Đấu nối hiện tại](docs/hardware-setup.md), [kiểm kê](docs/m0-device-inventory.md), [các cổng triển khai](docs/m0-m2-checklist.md).
+- [Kế hoạch gốc](KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md) và PDF gốc được giữ nguyên; thay đổi tuyến Air được ghi trong checkpoint.
+- [Quy trình đo quang học](docs/latency-measurement-procedure.md) giữ làm tham khảo; người dùng đã miễn bài đo này cho đánh giá LAN hiện tại.
 
-- [Bàn giao Windows](HANDOFF_WINDOWS.md)
-- [Kế hoạch M0–M6](KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md)
-- [Đấu nối](docs/hardware-setup.md), [kiểm kê](docs/m0-device-inventory.md), [cổng M0–M2](docs/m0-m2-checklist.md)
-- [Đo glass-to-glass](docs/latency-measurement-procedure.md)
-- [WireGuard](infra/vpn/README.md), [Docker tham khảo](infra/docker/README.md)
-
-.local/.runtime, media, keys và ảnh tem có định danh không được publish. Không tiếp tục chẩn đoán Mac đã dừng; phiên Windows do người dùng bắt đầu sẽ ghi bằng chứng mới.
+Thứ tự mạng gốc của Mini đã khôi phục: Ethernet → Thunderbolt Bridge → Wi-Fi. Ethernet đang inactive nên Internet hiện vẫn qua Wi-Fi. Không có kết luận rằng thay thứ tự mạng đã xử lý nguyên nhân restart trước đây.

@@ -1,37 +1,41 @@
-# Danh mục kiểm tra các cổng M0–M2 (M0–M2 Gate Checklist)
+# Các cổng triển khai hiện tại
 
-Tài liệu này cụ thể hóa điều kiện qua cổng cho giai đoạn **M0 → M1 → M2** theo [`KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md`](../KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md).
-**Quy tắc bắt buộc:** Không đánh dấu `PASS` cho bất kỳ hạng mục phần cứng, mạng hoặc độ trễ nào khi chỉ mới chạy dữ liệu giả lập (synthetic).
+Theo [kế hoạch gốc](../KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md), cập nhật tuyến đã được người dùng chọn: Mac mini phát triển, Air onsite nhận/ghi camera qua AP Wi-Fi. ER605/WireGuard là phương án tham khảo, không tự nối lại để đạt gate cũ.
 
-Cập nhật 01/11/2026: đã dừng kiểm thử trên Mac và dọn runtime. Các kết quả phần mềm bên dưới là lịch sử macOS; Windows phải làm W0 trong [bản bàn giao](../HANDOFF_WINDOWS.md) và xác minh lại. Các lệnh Python dưới đây là tham chiếu chức năng; dùng interpreter Windows sau khi port, không chạy lại trên Mac theo yêu cầu hiện tại.
+Không đánh dấu phần cứng/mạng/latency PASS bằng unit test hoặc synthetic. Snapshot và lệnh kiểm tra nằm trong [checkpoint](implementation-status.md).
 
-## 1. Cổng M0: Kiểm kê thiết bị và khóa thiết kế POC
+## M0 — thiết bị và nền phần mềm
 
-| Mã kiểm tra | Nội dung yêu cầu | Bằng chứng cần có | Trạng thái hiện tại |
-|---|---|---|---|
-| `M0-INV-01` | Xác nhận đúng mã model/suffix và firmware thực tế của camera Hikvision | Cập nhật bảng trong [`m0-device-inventory.md`](m0-device-inventory.md) | `PARTIAL: model/firmware SADP đã đọc, chưa đối chiếu UI` |
-| `M0-INV-02` | Xác nhận hardware version (ví dụ `UN v2.30`) và firmware của router TP-Link ER605 | Cập nhật bảng trong [`m0-device-inventory.md`](m0-device-inventory.md) | `PENDING` |
-| `M0-INV-03` | Xác nhận ngân sách PoE (PoE budget), cáp mạng và tốc độ cổng LAN không bị drop | Số liệu kiểm tra thực tế trên switch/router | `PENDING` |
-| `M0-BAK-01` | Sao lưu cấu hình gốc của camera và ER605 trước khi chỉnh sửa | Bản backup lưu bảo mật ngoài git | `PENDING` |
-| `M0-SW-01` | Bộ công cụ POC cục bộ (`scripts/poc.py`), kiểm tra cấu hình/redaction/permissions và unit tests | `python3 -m unittest discover -s tests -v` | `LỊCH SỬ macOS: 22 tests PASS; Windows PENDING` |
+| Gate | Kết quả hiện tại | Phần còn thiếu |
+|---|---|---|
+| M0-INV-01 camera |Model/firmware/IP/profile đã đọc từ camera và có video |Không công bố định danh riêng |
+| M0-INV-02 tuyến/router |Tuyến switch→AP Wi-Fi→Air đã xem được |ISP/modelAP/vị trí thực Lào chưa xác định; ER605 không trong tuyến |
+| M0-INV-03 nguồn/cổng |Camera nhận PoE và có link/video |PoE budget đêm, CRC/drop/UPS chưa nghiệm thu |
+| M0-BAK-01 backup |Full encrypted camera backup đã lưu trước chỉnh720p, hash khớp hai máy |Restore chưa thử; router backup chưa có |
+| M0-SW-01 phần mềm |CLI Python và supervisor có unit fixtures/guard tests |Xem số lượng/lần chạy mới nhất ở checkpoint; không dùng unit để suy ra WAN |
 
-## 2. Cổng M1: LAN Baseline, Codec Gate và Sàn độ trễ
+## M1 — LAN và ghi cục bộ
 
-| Mã kiểm tra | Tham chiếu Kế hoạch | Điều kiện đạt (Pass Criteria) | Lệnh / Quy trình kiểm chứng | Trạng thái hiện tại |
-|---|---|---|---|---|
-| `M1-SW-SMOKE` | POC Local Runtime | MediaMTX `v1.21.3` chạy trên loopback `127.0.0.1`, parse file config riêng tư (`0600` POSIX / ACL Windows; `moq: no`), trang player tích hợp mở được và tiến trình dừng sạch sẽ | `python3 scripts/poc.py smoke` | `LỊCH SỬ macOS native v1.21.3; chưa video; Windows PENDING` |
-| `CODEC-01` | Mục 5.1 & 9.3 | Luồng thật từ camera đạt đúng `H.264`, `1280x720`, `25 fps`, **không có audio**, **0 B-frame quan sát được** trong mẫu ≥ 60 giây (~1.500 frame), đo được GOP thực tế | `python3 scripts/poc.py probe --source-file .local/camera-source.json --duration 60` | `PENDING: chưa RTSP có xác thực/frame thật; chuyển Windows` |
-| `M1-PLAYER-01` | Mục 5.3 & 7 (M1) | Trình duyệt thực mở `http://127.0.0.1:8889/live`, hiển thị hình ảnh chuyển động thực từ camera qua WebRTC loopback | Mở trình duyệt trên máy trạm kết nối LAN với camera | `PENDING: chưa WebRTC video thật` |
-| `LAT-01` | Mục 7 (M1) & 9.1 | Đo độ trễ quang học glass-to-glass trong LAN (hướng tới LAN p95 ≤ 400 ms để còn ngân sách cho WAN), thử cả cảnh sáng và tối, chạy ≥ 60 phút cho profile được chọn | Theo [`latency-measurement-procedure.md`](latency-measurement-procedure.md) | `PENDING: chưa có số đo glass-to-glass` |
+| Gate | Bằng chứng | Trạng thái |
+|---|---|---|
+| Native runtime |MediaMTX v1.21.3/API/loopback/player/cleanup trên Air |PASS cho phạm vi đã thử |
+| CODEC-01 |Mẫu ghi thật65,0329s/1.628frames,H.264 Baseline 720p/25,033fps,0B/0audio,GOPmedian/max25 |PASS recorded-frame sample |
+| M1-PLAYER-01 |Safari Air có hình WebRTC chuyển động, người dùng xác nhận |USER-VERIFIED; Codex không trực tiếp quan sát UI Air |
+| LAT-01 |Người dùng miễn đo quang học và chấp nhận tốc độ bằng mắt |USER-ACCEPTED/VISUAL; không có p95 đã đo |
+| RECORD-01 |Bản ghi tăng/xoay, playback401/200, xuấtMP4, người dùng xem clip cũ bằngVLC |PASS native POC; chưa có Admin website |
+| RETENTION-01 |Fixture25h bịxóa,1h còn; recordDeleteAfter1d |PASS cơ chế; chưa qua đủ24h dữ liệu thật |
+| GUARD-01 |Lock/redaction/authlatch/diskpause/cleanup fixtures; native hot-pause giữ live |PASS phạm vi kiểm tra; chưa cố làm đầy SSD thật |
+| ENDURANCE-01 |Service session đang chạy từ 16:32+07 |PENDING24h; chưa tự phục hồi qua logout/reboot |
 
-## 3. Cổng M2: Singapore VPS và Đường hầm WireGuard
+## M2 — đường ra server và recovery
 
-| Mã kiểm tra | Tham chiếu Kế hoạch | Điều kiện đạt (Pass Criteria) | Lệnh / Quy trình kiểm chứng | Trạng thái hiện tại |
-|---|---|---|---|---|
-| `HW-01` | Mục 9.3 | Reboot PoE/camera/router có người hỗ trợ tại chỗ: camera online lại, WireGuard tự kết nối lại, cấu hình được giữ nguyên | Thực hiện theo [`../infra/vpn/README.md`](../infra/vpn/README.md) | `PENDING` |
-| `NET-01` | Mục 5.2 & 9.3 | VPS Singapore đọc được luồng RTSP thật của camera qua tunnel WireGuard liên tục ≥ 2 giờ; so sánh A/B giữa `rtspTransport: tcp` và `udp`; không mở public RTSP/admin của camera hay router | Chạy `poc.py probe` & MediaMTX trên VPS qua giao diện `wg0` | `PENDING` |
-| `NET-02` | Mục 2, 7 & 9.3 | Giả lập đứt WAN 60 giây rồi khôi phục, lặp lại 3 lần có giám sát: tunnel và luồng video tự phục hồi (hướng tới ≤ 30 giây sau khi WAN có lại) | Ghi thời gian phục hồi từng lần vào báo cáo | `PENDING` |
+Publisher outbound có xác thực/mã hóa từ Air là phương án tiếp theo cần chốt. Chưa thuê/deployVPS hoặc càiVPN; không phát public RTSP/admin camera.
 
-## 4. Điều kiện mở khóa các mốc tiếp theo (M3+)
+| Gate | Điều kiện cần có | Trạng thái |
+|---|---|---|
+| NET-01 |Server được duyệt nhận video thật qua đường đã chốt, liên tục≥2h, có kiểm tra packet loss/jitter và A/B khi cần |PENDING |
+| NET-02 |Mất WAN60s/khôi phục lặp3lần có giám sát, ghi thời gian phục hồi |PENDING |
+| HW-01 |Camera/AP/Air phục hồi sau mất điện/reboot, cần người hỗ trợ tại chỗ và quyền thao tác |PENDING |
+| OPS-01 |Kênh bảo trì từ xa có xác thực, quyền hẹp và rollback |PENDING |
 
-- Chỉ khi **toàn bộ `CODEC-01`, `LAT-01`, `HW-01`, `NET-01`, `NET-02`** có bằng chứng thực tế đạt yêu cầu thì mới chuyển sang **M3** (thử nghiệm trình duyệt/mạng hai quốc gia Lào & Việt Nam trên HTTPS) và **M4A/M4B** (xây dựng Fastify API, PostgreSQL, Next.js và Recording).
+Sau khi có bằng chứng mạng/recovery phù hợp mới mở website Admin/RBAC/HTTPS và đánh giá trình duyệt/mạng Lào–Việt Nam/tải200peers. Quy trình đo quang học được giữ làm tham khảo; không coi lựa chọn miễn đo LAN là số đo WAN.

@@ -2,7 +2,7 @@
 
 Tài liệu này mô tả tuyến chạy thử bằng Docker cho giai đoạn chuẩn bị **M0–M2** và lý do ưu tiên bản thực thi **MediaMTX native** trên macOS.
 
-**Bàn giao 01/11/2026:** Mac đã dừng kiểm thử và dọn runtime. Tuyến hiện tại là Windows native sau công việc W0 trong [HANDOFF_WINDOWS.md](../../HANDOFF_WINDOWS.md). Docker/Linux/WSL chưa được xác minh trên Windows; các lệnh dưới đây là tham khảo tuyến riêng, không phải bước khởi động Windows mặc định.
+**Tuyến hiện tại:** phát triển trên Mac mini, runtime native trên Air. Docker/Linux là phương án tham khảo riêng, chưa được kiểm chứng cho tuyến camera đang chạy; đọc [bản bàn giao](../../HANDOFF_MAC_MINI.md).
 
 ## 1. Khi nào dùng tuyến Native vs Docker
 

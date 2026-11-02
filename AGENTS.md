@@ -1,31 +1,46 @@
-# DEV.ONE Secure Live
+# DEV.ONE Secure Live — hướng dẫn làm việc
 
-## Active handoff: Windows, 2026-11-01
+## Bắt đầu chat mới
 
-- The user ended all testing on Mac mini and authorized cleanup plus publication to `https://github.com/tuanminh2409bn/camera`. Keep POC source/tests, the original PDF/plan and user photos; delete local runtime, downloads, private credentials and reports. Keep Wi-Fi first on Mac as explicitly selected by the user.
-- Start with `HANDOFF_WINDOWS.md` and `docs/implementation-status.md`. Do not resume camera tests, aliases, smoke or unit tests on this Mac checkout. The Windows workflow begins only when the user starts work there.
-- The CLI has macOS/POSIX assumptions. Do not call it Windows-ready: first handle the Windows ZIP/.exe installer, NTFS private-file permissions, pipe I/O and child-process cleanup. Preserve existing security and codec gates; never bypass 0600 checks as a substitute for a real Windows ACL implementation.
-- Never copy real credentials or device-label photos into this public repository. Runtime folders and original photos stay ignored.
+- Đọc `HANDOFF_MAC_MINI.md`, `docs/implementation-status.md` và `docs/air-recording-service.md` trước khi tiếp tục. Kiểm tra HEAD/working tree thực tế; các PID, IP, dung lượng và trạng thái trong tài liệu là snapshot.
+- Mac mini là máy phát triển duy nhất, checkout `/Volumes/Developer/Projects/camera`. MacBook Air là máy chạy MediaMTX/ghi hình tại điểm camera, workspace `/Users/macbook/Developer/camera`; không nhầm hai máy khi chạy lệnh.
+- Codex tự triển khai, review và kiểm thử trực tiếp theo `dev-flow`. Không dùng Antigravity, `agy` hoặc bridge/worker cũ. Không tự phục hồi những công cụ đã gỡ.
+- Các yêu cầu hiện tại thay thế hướng bàn giao và các tuyến đấu nối cũ. PDF/kế hoạch gốc giữ nguyên để truy vết; trạng thái thực tế và các thay đổi được người dùng chọn nằm trong bản bàn giao mới.
 
-## Scope and gates
+## Tuyến và phạm vi hiện tại
 
-- Follow `KE_HOACH_TRIEN_KHAI_LIVESTREAM_05_1_GIAY.md`. Current slice: M0-M2 preparation and local MediaMTX POC only. Do not build production website/auth/DB until the camera-to-server network gate passes.
-- One Hikvision camera, H.264 720p/25 fps, no audio, viewers in Laos and Vietnam. Latency target: p95 <= 1,000 ms, aiming for p50 <= 500 ms, measured glass-to-glass. Synthetic media does not prove camera latency.
-- No Mini PC/NUC/Edge Agent at the camera site. Preserve PDF and original plan.
-- Router firmware, WAN changes, resets, external deployment and new infrastructure costs require explicit authority. Do not run router or firewall mutation commands automatically.
+- Camera Hikvision `DS-2CD2643G2-LIZS2UHUN`, firmware `V5.7.23 build 260320`, IP tĩnh `192.168.1.64/24`, DHCP=false.
+- Camera → PoE 1 của switch; switch UPLINK 5 → LAN bộ phát Wi-Fi. Mini và Air cùng mạng Wi-Fi. ER605 không tham gia tuyến hiện tại; không nối lại hoặc đổi camera DHCP để khớp tài liệu cũ.
+- Kênh101: H.264 Baseline, 1280×720, 25 fps, CBR2048Kbps, GOP25, không âm thanh, H264+/SVC tắt. Có full backup mã hóa riêng tư trước khi chỉnh, chưa kiểm tra restore.
+- Người dùng đã chấp nhận tốc độ WebRTC bằng mắt theo mục tiêu một giây và miễn bài đo quang học: ghi `USER-ACCEPTED/VISUAL`, không ghi p95 đã đo hoặc yêu cầu quay slow-motion lại trong phạm vi này.
+- Hiện là POC native LAN/ghi SSD. Website Admin/RBAC, VPN bảo trì, publisher WAN, VPS, HTTPS public và tải200 peers chưa triển khai. Mọi hạ tầng/cost, dependency mới, thay schema/public API hoặc mở listener LAN/public cần quyền riêng.
 
-## Code and secrets
+## Giữ phiên ghi trên Air
 
-- Prefer Python 3.9+ standard library for the POC tooling. Do not add third-party runtime packages without reviewing the need.
-- Native macOS was the verified historical local route; the active target is now Windows native after the portability work in the handoff. Linux/Docker remains a separately documented, unverified route. Pin versions and verify downloaded archive hashes. Never auto-install system tools.
-- Keep camera credentials, RTSP URLs, VPN keys and media tokens out of tracked files, command output and shared evidence. Store runtime configuration in ignored, private files. Do not dump process environments or raw ffprobe stderr.
-- POC listeners bind loopback by default; disable unused protocols. The POC is not production authentication. LAN/public exposure must be an explicit, separately reviewed configuration.
-- Use bounded subprocess calls, validated inputs, explicit exit codes and actionable redacted errors. Do not interpolate untrusted values into shell commands.
+- Service label `com.devone.camera.air-recording-supervisor`, bootstrap từ `.local/recording-service/recording-agent.plist` trong user GUI session. `KeepAlive=false`, chưa cài `Library/LaunchAgents` hay daemon; không tự chạy lại sau logout/reboot.
+- Giữ Air cắm nguồn, mở nắp và đăng nhập. Đọc `status.json`/API trước khi thao tác; không dùng PID chép từ tài liệu để signal và không khởi động native instance thứ hai.
+- Ghi `.local/recordings/live/`, fMP4, part1s/segment1m, retention1d. Native cleaner có thể dọn trễ khoảng30 phút sau mốc24h; wrapper không tự xóa video. Reserve15GiB; lỗi/thiếu dung lượng sẽ pause ghi, pause thất bại thì dừng child.
+- Camera auth401/403 phải dừng và giữ `auth-stop.latch`, không thử lặp. Playback HTTP401 là challenge cục bộ, không phải lỗi mật khẩu camera. Không tự gỡ latch khi chưa review nguyên nhân.
+- Listener chỉ127.0.0.1: RTSP8554, WebRTC8889/UDP8189, API9997, playback9996. Playback có tài khoản riêng; chưa có Admin website.
+- SSH đã được duyệt qua LAN tới `macbook@192.168.1.12`, key/trust riêng tại `.local/ssh/air-poc` trên Mini. Key bị giới hạn nguồn Mini `192.168.1.8`; không mở rộng quyền hoặc đổi trust/host key khi gặp lỗi.
 
-## Verification and reporting
+## Mạng và sự cố Mini
 
-- Add meaningful tests for config validation, credential redaction, probe interpretation, subprocess failures and timeouts. Never soften failures to claim a pass.
-- Record exact commands, runtime versions and actual results in `docs/implementation-status.md`. Mark missing hardware/network measurements as pending, not successful.
-- For resumed implementation on Windows, required checks are the equivalents of `make check` (compileall, CLI help, unittest) plus `poc.py smoke` with the pinned Windows native binary after W0. The handoff lists PowerShell commands; no GNU Make requirement. `doctor` reports prerequisites without installing them. Mac testing remains stopped by explicit user instruction; do not execute these gates on Mac during cleanup/handoff.
-- Real camera RTSP, router/WireGuard recovery, glass-to-glass latency, mobile browsers and 200-peer load each need independent evidence.
+- Theo yêu cầu mới, thứ tự gốc đã được người dùng lưu và Codex xác minh: **Ethernet → Thunderbolt Bridge → Wi-Fi**. Ethernet hiện inactive/DHCP, default route vẫn qua Wi-Fi en1. Không tự chuyển lại Wi-Fi-first.
+- Không thêm IP phụ/host route hoặc chạy lại helper mạng cũ. `.local/check-mac-camera.py` phải tiếp tục không tồn tại; bản `.disabled.txt` chỉ lưu để tra cứu.
+- Người dùng từng gặp restart khi chạy helper. Log có `SOCD report detected: (iBoot async abort)`; chưa xác định nguyên nhân. Khôi phục thứ tự mạng không chứng minh đã sửa được lỗi hệ thống. Không tự reboot/update macOS, chẩn đoán stress, đổi WAN/router/firmware hoặc flush route.
 
+## Source, công cụ và bí mật
+
+- `scripts/poc.py`: Python3.9+ stdlib, config/probe/analyze/installer/runtime có giới hạn. MediaMTX ghim v1.21.3; supervisor dùng Perl core của Air. Không tự cài Python/CLT trên Air.
+- FFprobe9.0.2 Intel chỉ được duyệt trong project Air. Không chạy binary Intel này trên Mini hoặc cài công cụ hệ thống ngầm.
+- `.local`/runtime0700, cấu hình và credential0600. Không in password, RTSP URL có credential, private key, raw config/API config dump hoặc environment. Chỉ xuất các field allowlist đã redaction.
+- Không commit runtime, video, backup cấu hình thiết bị, ảnh tem, mật khẩu hoặc log riêng tư. Các bản clone mới không có credential/SSH key; người dùng nhập trực tiếp trên máy khi cần.
+- Giữ thay đổi ngoài phạm vi. Push/merge/deploy cần quyền; yêu cầu cập nhật GitHub trong phiên bàn giao này đã cho phép commit và push phần công việc được tổng hợp, không cho phép phát hành hạ tầng.
+
+## Kiểm chứng
+
+- Software checks trên Mini: `make check` (compileall, CLI help, Python unittest); các bài dùng fixture và child giả. Không chạy lại pipeline camera/native trên Mini chỉ để bàn giao.
+- Supervisor trên Air: `/usr/bin/perl -c scripts/air_recording_supervisor.pl` và `/usr/bin/perl tests/test_air_recording_supervisor.t`; dùng fake workspace/child, không đổi phiên ghi thật.
+- Không coi unit/synthetic là bằng chứng codec, latency, WAN hay endurance. Chỉ ghi PASS cho cổng có dữ liệu phù hợp; ghi rõ máy thực thi và thời điểm.
+- Trước công bố: kiểm tra diff, Markdown links, plist, hash source, file bị ignore và secret scan; ghi lệnh/kết quả trong checkpoint. Không làm yếu gate/tests để lấy kết quả xanh.

@@ -1,5 +1,7 @@
 # Runbook Cấu Hình Thủ Công WireGuard: TP-Link ER605 (Standalone) ↔ Singapore VPS (M2)
 
+**Phương án tham khảo:** ER605/WireGuard chưa tham gia tuyến AP Wi-Fi → Air hiện tại. Không tự áp dụng runbook này để thay đổi mạng đang chạy; đọc [bản bàn giao](../../HANDOFF_MAC_MINI.md).
+
 > **CẢNH BÁO QUAN TRỌNG:**
 > - Tài liệu này chỉ hướng dẫn quy trình kiểm tra và cấu hình **thủ công** cho mốc **M2** sau khi có quyền phê duyệt hạ tầng.
 > - **Tuyệt đối không** tự động chạy lệnh thay đổi định tuyến, tường lửa (iptables/nftables/ufw), WAN hoặc nạp firmware trên router/VPS.
