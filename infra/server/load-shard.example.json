@@ -1,0 +1,8 @@
+{
+  "origin": "https://camera.example.com",
+  "startAt": "REPLACE_WITH_SHARED_FUTURE_ISO_TIME",
+  "durationSeconds": 28800,
+  "accounts": [
+    {"username": "load-viewer-001", "password": "REPLACE_WITH_PRIVATE_PASSWORD"}
+  ]
+}

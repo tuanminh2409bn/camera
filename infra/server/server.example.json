@@ -1,0 +1,15 @@
+{
+  "databaseUrl": "postgresql://devone:REPLACE_WITH_RANDOM_PASSWORD@127.0.0.1:5432/devone",
+  "origin": "https://camera.example.com",
+  "port": 3001,
+  "encryptionKey": "REPLACE_WITH_64_HEX_CHARACTERS",
+  "mediaOrigin": "http://127.0.0.1:8889",
+  "mediaApiOrigin": "http://127.0.0.1:9997",
+  "mediaUser": "web-backend",
+  "mediaPassword": "REPLACE_WITH_RANDOM_MEDIA_PASSWORD",
+  "airOrigin": "http://127.0.0.1:19996",
+  "airToken": "REPLACE_WITH_SHARED_RANDOM_AIR_GATEWAY_TOKEN",
+  "loginHours": 12,
+  "maxPlaybackSessions": 5,
+  "allowInsecureLocalhost": false
+}

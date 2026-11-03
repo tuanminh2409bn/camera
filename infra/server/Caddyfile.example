@@ -1,0 +1,24 @@
+# Candidate only. Replace the domain before validation/deployment.
+camera.example.com {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        X-Frame-Options DENY
+        -Server
+    }
+    @api path /api/*
+    handle @api {
+        reverse_proxy 127.0.0.1:3001 {
+            # Only this trusted proxy supplies the external client address.
+            header_up X-Forwarded-For {remote_host}
+            header_up -X-Real-IP
+            flush_interval -1
+        }
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+    # No access log: session resource URLs must not enter general request logs.
+}

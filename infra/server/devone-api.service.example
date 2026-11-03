@@ -1,0 +1,29 @@
+[Unit]
+Description=DEV.ONE authorization API and fail-closed watchdog
+After=network.target postgresql.service
+Wants=devone-media.service
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=devone
+Group=devone
+WorkingDirectory=/opt/devone/current
+Environment=NODE_ENV=production
+Environment=DEVONE_CONFIG=/etc/devone/server.json
+ExecStart=/usr/bin/python3 /opt/devone/current/scripts/api_watchdog.py /usr/local/bin/node /opt/devone/current/apps/api/dist/main.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

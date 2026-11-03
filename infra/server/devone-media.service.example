@@ -1,0 +1,25 @@
+[Unit]
+Description=DEV.ONE MediaMTX live fanout (no video storage)
+BindsTo=devone-api.service
+After=devone-api.service
+
+[Service]
+Type=simple
+User=devone
+Group=devone
+WorkingDirectory=/opt/devone/current
+ExecStart=/opt/devone/bin/mediamtx /etc/devone/mediamtx.json
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=5
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+# Pion needs NETLINK_ROUTE to discover interfaces for WebRTC on Linux.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "lib": ["ES2024", "DOM"]
+  },
+  "include": [
+    "apps/api/tests/**/*.ts",
+    "tests/browser/**/*.ts",
+    "scripts/load_webrtc.ts",
+    "playwright.config.ts"
+  ]
+}
