@@ -120,9 +120,9 @@ sub redact_text {
     }
     # Remove known secrets first, so delimiters inside a raw password cannot
     # make the generic URL/key filters leave a credential fragment behind.
-    $out =~ s{((?:rtsp|rtsps|http|https)://)([^/\s\@]+)\@}{$1\[REDACTED]\@}gi;
-    $out =~ s{((?:rtsp|rtsps|http|https)://)([^\s/\@]+:[^\s/\@]*)(?=\s|/|\z)}{$1\[REDACTED]}gi;
-    $out =~ s{\b(password|passwd|pass|secret|token|authorization)(\s*[:=]\s*)(?:(?:Bearer|Basic|Digest)\s+)?([^\s&"',;]+)}{$1$2\[REDACTED]}gi;
+    $out =~ s{((?:rtsps?|https?|whips?)://)([^/\s\@]+)\@}{$1\[REDACTED]\@}gi;
+    $out =~ s{((?:rtsps?|https?|whips?)://)([^\s/\@]+:[^\s/\@]*)(?=\s|/|\z)}{$1\[REDACTED]}gi;
+    $out =~ s{\b(password|passwd|pass|secret|token|whipBearerToken|authorization)(\s*[:=]\s*)(?:(?:Bearer|Basic|Digest)\s+)?([^\s&"',;]+)}{$1$2\[REDACTED]}gi;
     return $out;
 }
 
@@ -344,10 +344,10 @@ sub load_and_extract_secrets {
         }
     }
 
-    while ($cfg_raw =~ m{(rtsps?://[^\s"']+)}gi) {
+    while ($cfg_raw =~ m{((?:rtsps?|https?|whips?)://[^\s"']+)}gi) {
         my $url = $1;
         push @secrets, $url;
-        if ($url =~ m{\Artsps?://([^/\s\@]+)\@}i) {
+        if ($url =~ m{\A(?:rtsps?|https?|whips?)://([^/\s\@]+)\@}i) {
             my $userinfo = $1;
             push @secrets, $userinfo, uri_unescape($userinfo);
             my ($u, $p) = split(/:/, $userinfo, 2);
@@ -357,6 +357,29 @@ sub load_and_extract_secrets {
                 }
             }
         }
+    }
+
+    # Accept the RFC 6750 bearer alphabet in plain or simply quoted scalars.
+    # Refuse YAML aliases/block scalars instead of starting with an unknown
+    # secret that could escape redaction. No YAML dependency is needed here.
+    for my $line (split(/\r?\n/, $cfg_raw)) {
+        next if $line =~ /^\h*#/;
+        if ($line =~ /whipBearerToken/i && $line !~ /^\h*(?:-\h+)?whipBearerToken\h*:/i) {
+            die "Unsupported whipBearerToken mapping in recording configuration.\n";
+        }
+    }
+    while ($cfg_raw =~ m{^\h*(?:-\h+)?whipBearerToken\h*:\h*([^\r\n]*)}gmi) {
+        my $scalar = $1;
+        next if $scalar =~ /\A(?:""|'')?\h*(?:#.*)?\z/;
+        my $token;
+        if ($scalar =~ /\A([A-Za-z0-9._~+\/-]+=*)\h*(?:#.*)?\z/
+            || $scalar =~ /\A"([A-Za-z0-9._~+\/-]+=*)"\h*(?:#.*)?\z/
+            || $scalar =~ /\A'([A-Za-z0-9._~+\/-]+=*)'\h*(?:#.*)?\z/) {
+            $token = $1;
+        } else {
+            die "Unsupported whipBearerToken scalar in recording configuration.\n";
+        }
+        push @secrets, $token;
     }
 
     while ($cfg_raw =~ m{^\s*(?:user|pass)\s*:\s*["']?([^"'\r\n#]+)["']?}gmi) {
@@ -547,6 +570,13 @@ sub append_bounded_log {
 sub classify_child_log_line {
     my ($line) = @_;
     return 'normal' unless defined($line) && length($line) > 0;
+
+    # Native v1.21.3 forward logs share [path live] with the camera source.
+    # Destination auth, network, and recovery messages describe only outbound
+    # delivery; they must never latch, degrade, or restore the local source.
+    if ($line =~ m{\[(?:whips?|rtsps?|rtmps?|srt|moqt)\s+dest\s+\d+\s+[0-9a-f]{8}\]}i) {
+        return 'forward_destination';
+    }
 
     # Playback, WebRTC, or control API listener lines must never be confused with RTSP camera source auth.
     if ($line =~ m{\[(?:playback|webrtc|api|hls|rtmp|srt)\]}i
@@ -757,6 +787,9 @@ sub run_supervisor {
     local $SIG{CHLD} = 'DEFAULT';
     my $workspace = $opts->{workspace};
     my $duration  = $opts->{duration};
+    # Used only by the login-service entry point. Recording starts disabled
+    # before native exec, then the authenticated server reconciles its intent.
+    my $managed_start = $opts->{managed_start} ? 1 : 0;
 
     my $parsed = parse_cli_args(
         '--workspace' => (defined($workspace) ? $workspace : ''),
@@ -834,6 +867,7 @@ sub run_supervisor {
             now             => $clock_fn->(),
         });
         close($lock_fh);
+        return 0 if $managed_start; # SuccessfulExit=false must not retry auth.
         die "Refusing to reconnect: operator-attention auth latch is active (.local/recording-service/auth-stop.latch).\n";
     }
 
@@ -842,7 +876,8 @@ sub run_supervisor {
         ? $disk_check_fn->($workspace)
         : check_available_disk_bytes($workspace, $aux_timeout_sec, $clock_fn);
 
-    if (!defined($avail_bytes) || $avail_bytes < RESERVE_BYTES) {
+    my $startup_disk_unsafe = !defined($avail_bytes) || $avail_bytes < RESERVE_BYTES;
+    if ($startup_disk_unsafe && !$managed_start) {
         my $reason = defined($avail_bytes) ? 'disk_low' : 'disk_unknown';
         $log_opts->{now} = $clock_fn->();
         append_bounded_log(
@@ -892,6 +927,7 @@ sub run_supervisor {
         chdir($workspace) or POSIX::_exit(126);
         umask(0077);
         delete @ENV{grep { /^MTX_/ } keys %ENV};
+        $ENV{MTX_PATHS_LIVE_RECORD} = 'false' if $managed_start;
         open(STDIN, '<', '/dev/null') or POSIX::_exit(126);
         open(STDOUT, '>&', $child_w)  or POSIX::_exit(126);
         open(STDERR, '>&', $child_w)  or POSIX::_exit(126);
@@ -906,10 +942,13 @@ sub run_supervisor {
     my $child_pgid    = $child_pid;
     my $child_reaped  = 0;
     my $child_status  = undef;
-    my $recording_paused  = 0;
+    # With recording disabled before exec, native can safely clean expired
+    # segments even at low disk. Keep enabling blocked until operator recovery.
+    my $recording_paused  = $startup_disk_unsafe ? 1 : 0;
     my $auth_latch_active = 0;
-    my $current_state     = 'starting';
-    my $current_reason    = 'source-not-ready';
+    my $current_state     = $recording_paused ? 'paused' : 'starting';
+    my $current_reason    = $recording_paused
+        ? (defined($avail_bytes) ? 'disk_low' : 'disk_unknown') : 'source-not-ready';
 
     my $cleanup_child = sub {
         if (!$child_reaped && defined($child_pid) && $child_pid > 0) {
