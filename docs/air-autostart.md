@@ -1,5 +1,7 @@
 # Tự khởi chạy và dọn bản ghi trên Air
 
+**Cập nhật di chuyển03/11:** đã cài agent thứ4 `com.devone.camera.camera-source`, RTSP proxy loopback18556 + SADP/HTTPS pin; config không giữ IP camera gợi ý. Camera đã bật DHCP, tunnel Air chuyển2222,4jobs/1native/ghi tắt; dừng đúng proxy PID rồi launchd tự phục hồi/live phục hồi PASS. Đọc [runbook di chuyển](portable-deployment.md). Bài reboot/Wi-Fi thật trước đó áp dụng bộ3agent; chưa reboot cả4agent, không tự reboot để kiểm. Các mô tả3agent/IP tĩnh/cổng22 phía dưới là snapshot trước thay đổi này.
+
 Trạng thái ngày03/11/2026,12:45+07: **đã cài và kiểm phục hồi thực tế trong phiên đăng nhập**. Ba plist nằm tại `/Users/macbook/Library/LaunchAgents/`, runtime Perl tại `/Users/macbook/Developer/camera/.local/air-autostart-runtime/`; không sửa các script cũ trong `scripts/` trên Air. Ghi mới=false trên disk/native/VPS intent. Bộ ứng viên `.local/autostart-prep/candidate-20261103/` trên Mini và `.local/autostart-candidate-20261103/` trên Air được giữ để đối chiếu hash. Backup private trên Air `.local/autostart-backup-20261103/`; runtime/plist cũ giữ để rollback, không bootstrap duplicate.
 
 SSH operator VPS đã khôi phục bằng `.local/ssh/server-operator/id_ed25519_recovery_20261103`, dùng known_hosts cũ. User tự reset root/đổi password và tự thêm public key. `/usr/bin/ssh -o UseKeychain=yes -o IdentityAgent=none` với strict trust/key mới đã kết nối thành công; không đọc/hiện passphrase. Password/kbd-interactive SSH VPS vẫn tắt, public-key bật, không đổi firewall hoặc account tunnel Air.

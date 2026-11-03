@@ -108,9 +108,11 @@ cd /Users/macbook/Developer/camera
 /usr/bin/ssh -N -F .local/ssh/server-tunnel/config devone-server
 ```
 
-Ngày03/11 đã cài3LaunchAgent tự chạy sau đăng nhập Air, gồm gateway/tunnel và supervisor; xem [runbook hiện hành](air-autostart.md). Gateway/supervisor dùng `.local/air-autostart-runtime`, SSH config/key vẫn vị trí cũ; không chạy hai lệnh foreground trên khi các agent đang loaded. Log/runtime0700, files0600. Khi thay cùng label phải đợi tiến trình cũ thoát hết sau bootout. Đã kiểm phục hồi trong GUI session; logout/reboot/WAN thật còn chưa thử.
+Ngày03/11 đã cài3LaunchAgent gateway/tunnel/supervisor, sau đó thêm agent thứ4 cho [di chuyển không ER605](portable-deployment.md): DHCP camera/discovery có pin/proxy18556/tunnel2222. Xem [runbook Air](air-autostart.md). Runtime dùng `.local/air-autostart-runtime`, SSH config/key vẫn vị trí cũ; không chạy hai lệnh foreground trên khi các agent đang loaded. Log/runtime0700, files0600. Khi thay cùng label phải đợi tiến trình cũ thoát hết sau bootout. Đã kiểm reboot/Wi-Fi thật ở bộ3agent; bộ4agent mới kiểm proxy tự phục hồi, chưa reboot/đổi WAN-IP thật.
 
 `scripts/render_deployment.py air` tạo **candidate mới**, không ghi đè runtime: nhận source private và playback account, render fMP4 part1s/segment1m/retention1d. `server` tạo JSON/YAML native không ghi video, nguồn reverse RTSP18554, WHEP/API loopback, ICE8189. Không chạy file Air renderer trên Air vì không cài Python; render tại Mini rồi chuyển candidate được review. Không bật candidate chỉ để thử nếu làm gián đoạn bài endurance.
+
+Renderer Air cũ tạo source trực tiếp theo IP trong input, không tự cài discovery/proxy mới. **Không dùng candidate đó đè source roaming đang chạy**; giữ source loopback18556/TCP cùng credential/channel và kiểm theo runbook di chuyển trước khi thay runtime.
 
 Ví dụ cấu trúc lệnh tại Mini (input riêng tư phải được cung cấp và kiểm mode trước):
 
@@ -125,7 +127,7 @@ Gateway bật ghi chỉ khi status supervisor mới≤30 giây, không auth latc
 
 Template trong `infra/server/` chỉ là candidate. Kiểm đường dẫn Node/binary thực tế, checksum MediaMTX **v1.21.3 Linux đúng kiến trúc**, build release và owner/mode trước cài unit. Không dùng binary Intel Air trên server hoặc Mini. `systemd-analyze verify`, `caddy validate`, `sshd -t`, migration/backup/restore smoke phải PASS trên server thật.
 
-Public chỉ TCP80/443 (ACME/HTTPS), UDP/TCP8189 (WebRTC), SSH theo nguồn vận hành cần thiết. DB5432, API3001, Next3000, WHEP8889, native9997 và reverse18554/19996 chỉ loopback. Kiểm từ máy ngoài rằng không vượt qua auth bằng native URL. Caddy tự quản TLS; kiểm renewal/cert expiry, không tạo Certbot cạnh tranh cổng80. Origin/CSP chặn script ngoài, iframe và form khác nguồn.
+Public TCP80/443 (ACME/HTTPS), UDP/TCP8189 (WebRTC), SSH22 giới hạn IP vận hành và SSH2222 riêng cho Air roaming (rate-limit/key-only/no shell). DB5432, API3001, Next3000, WHEP8889, native9997 và reverse18554/19996 chỉ loopback. Kiểm từ máy ngoài rằng không vượt qua auth bằng native URL. Caddy tự quản TLS; kiểm renewal/cert expiry, không tạo Certbot cạnh tranh cổng80. Origin/CSP chặn script ngoài, iframe và form khác nguồn.
 
 ICE trực tiếp có TCP fallback; chưa có TURN. Nếu nhà mạng tại nơi làm việc chặn cả UDP/TCP8189, chưa được coi live WAN đạt: cần phương án TURN/TLS, báo lại chi phí và kiểm tuyến trước mở rộng. Không hứa mọi mạng/browser đã tương thích. Chrome Mini đã kiểm; Safari/iOS/Android, WAN/recovery và Linux chưa có bằng chứng.
 

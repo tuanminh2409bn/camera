@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.devone.camera.camera-source</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/perl</string>
+    <string>/Users/macbook/Developer/camera/.local/air-autostart-runtime/camera_roaming_proxy.pl</string>
+    <string>/Users/macbook/Developer/camera</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/macbook/Developer/camera</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>LimitLoadToSessionType</key><string>Aqua</string>
+  <key>Umask</key><integer>63</integer>
+  <key>EnvironmentVariables</key><dict><key>LC_ALL</key><string>C</string><key>LANG</key><string>C</string></dict>
+  <key>StandardOutPath</key><string>/Users/macbook/Developer/camera/.local/camera-roaming/stdout.log</string>
+  <key>StandardErrorPath</key><string>/Users/macbook/Developer/camera/.local/camera-roaming/stderr.log</string>
+</dict></plist>
