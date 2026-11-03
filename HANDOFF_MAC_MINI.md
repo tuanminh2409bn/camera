@@ -1,6 +1,18 @@
 # Bàn giao để tiếp tục trên Mac mini
 
+**Bàn giao vận hành03/11:** release `/opt/devone/releases/20261103T082215Z`, Admin có12kiểm tra và cảnh báo chỉ tại Admin theo lựa chọn user. Đã kiểm reboot/đăng nhập Air và tắt/bật Wi-Fi riêng Air thật; dịch vụ tự phục hồi, không bật thủ công. User xác nhận điện thoại live/tiếng/xem lại tốt; chưa rõ model/browser. Ghi mới tiếp tục tắt, desired=false/revision3. Code đã chốt local trên nhánh `tuanminh/secure-live-v1` tới `a113fc9` cùng các commit trước; tài liệu bàn giao được commit kế tiếp, chưa push. Đọc [vận hành](docs/operations.md) và phần cuối [checkpoint](docs/v1-implementation.md). Các mốc “chưa reboot/chưa mobile/chưa commit” phía dưới là lịch sử. Không tự lặp bài hoặc bật ghi.
+
+**Hiện hành03/11,14:40+07:** đã phát hành web/audio H264+Opus, bản ghi AAC; người dùng xác nhận nghe được live và bản ghi mới. Sau thử30giây: ghi mới=false/revision3. VPS release `/opt/devone/releases/20261103T074500Z`. Backup mã hóa VPS02:15/14ngày và Mini lúc đăng nhập/mỗi giờ/30ngày đã chạy; bản lưu thật restore DB tạm/MFA PASS, Mini agent exit0 bằng key chỉ tải ciphertext. Đọc [checkpoint](docs/v1-implementation.md) và [backup](docs/metadata-backup.md). Các trạng thái mốc cũ phía dưới là lịch sử. Không bật ghi lại hoặc yêu cầu chạy lại các bài đã miễn.
+
+**Vận hành03/11,12:45+07:** SSH VPS đã khôi phục bằng key mới `id_ed25519_recovery_20261103` (cùng thư mục operator, known_hosts cũ; dùng `/usr/bin/ssh -o UseKeychain=yes` được). Đã cài3LaunchAgent tự chạy sau đăng nhập Air và kiểm phục hồi native/tunnel thật; ghi mới vẫn=false,1065file/16.148.184.903byte không tăng. Đọc [runbook Air](docs/air-autostart.md) và checkpoint trước thao tác. User miễn bài tải200/8h (`USER-ACCEPTED/WAIVED`), không có benchmark; chưa đo logout/reboot/mất WAN thật, không tự thực hiện các bài đó.
+
+**Kết thúc bài ghi 03/11 lúc10:27+07 theo yêu cầu:** ghi mới đã tắt, desired/observed đều false; source/supervisor/live/playback vẫn phục vụ. Phiên ghi chính từ16:32:53,740858 ngày02/11 đến10:27:02,527107 ngày03/11, dài17h54m08,786s. Người dùng chấp nhận kết thúc sớm bài dự kiến24h (`USER-ACCEPTED`); không mô tả thành đo đủ24h hoặc tự bật lại ghi. Xem [checkpoint](docs/v1-implementation.md) cho bằng chứng dừng và việc tiếp theo.
+
+**Cập nhật 03/11/2026:** bản đầu đã được triển khai lên VPS DigitalOcean Singapore và `https://lao6789.com` theo quyền người dùng; Air nối ra VPS bằng tunnel riêng, phiên ghi hiện hữu không được khởi động lại. Các đoạn “chưa mua/chưa deploy” bên dưới là snapshot 02/11. Đọc [checkpoint v1](docs/v1-implementation.md) và [runbook](docs/web-deployment.md) để biết cấu hình, kiểm thử và các cổng nghiệm thu còn thiếu; không coi 200 người, endurance hoặc phục hồi sau reboot là đã đạt.
+
 Cập nhật 02/11/2026, giờ Việt Nam. Đây là điểm bắt đầu cho chat mới. Phát triển trên Mac mini; Air là runtime onsite, không chuyển quy trình phát triển sang máy khác.
+
+**Cập nhật web v1 trong phiên tối02/11:** xem [checkpoint](docs/v1-implementation.md) và [runbook web](docs/web-deployment.md) trước khi tiếp tục. Người dùng đã cho phép Next.js/Fastify/PostgreSQL/Caddy, dependency/schema/API. Các thay đổi đang local trên nhánh `tuanminh/secure-live-v1`, xuất phát từ HEAD `2619fd607718fc93170a76cd364d593863380d29`; chưa push/deploy. Không áp dụng kết luận “chưa có backend” của bản đồ POC bên dưới cho source mới. Không restart Air để đồng bộ source trong khi bài ghi24h chưa được kiểm xong.
 
 ## 1. Máy và trạng thái cần giữ
 
@@ -14,7 +26,7 @@ Cập nhật 02/11/2026, giờ Việt Nam. Đây là điểm bắt đầu cho ch
 
 Đã kiểm tra lại lúc 17:27:39+07: source ready/record=true, supervisor running, không auth latch/pause;61 tệp ghi,914.709.916byte, SSD trống99.648.942.080byte (~92,8GiB). Chỉ một native PID sở hữu cổng loopback; đây là snapshot, không phải số liệu24h. Không signal theo PID trong tài liệu.
 
-Air cần cắm sạc, mở nắp và còn đăng nhập. Service hiện bootstrap từ project, KeepAlive=false, chưa tự chạy lại sau logout/reboot. Không cài daemon, login item hoặc sửa FileVault/sleep nếu chưa có quyền mới.
+Air cần cắm sạc, mở nắp và đăng nhập. Snapshot02/11 dùng service session-only; hiện đã thay bằng3LaunchAgent trong `~/Library/LaunchAgents` theo quyền mới03/11, xem runbook ở đầu tài liệu. Không tự cài daemon trước đăng nhập hoặc sửa FileVault/sleep/auto-login.
 
 Source đã review/kiểm thử tại commit `31da5701060406b02f4f3b45b4cdb781238c572b`; chat mới so sánh HEAD/working tree với mốc này và đọc diff mới trước khi sửa.
 

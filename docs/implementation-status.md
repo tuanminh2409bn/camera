@@ -1,6 +1,18 @@
 # Trạng thái triển khai DEV.ONE Secure Live
 
+**Đưa vào vận hành03/11:** bản `/opt/devone/releases/20261103T082215Z` đã phát hành, có12kiểm tra/cảnh báo Admin; snapshot15:38 cho thấy tất cả bình thường. Reboot/đăng nhập Air và tắt/bật Wi-Fi riêng Air thật đã kiểm, dịch vụ tự phục hồi và playback còn hình/tiếng. User xác nhận điện thoại tốt theo hướng dẫn4G/5G; chưa rõ model/browser. Ghi mới vẫn=false/revision3 theo lựa chọn vận hành. Code đã lưu local `8810a4b`, `bd5e416`, `ac18d19`, `a113fc9`; chưa push. Xem [vận hành](operations.md), [checkpoint](v1-implementation.md). Chưa qua lịch backup đêm đầu tiên, chưa thử mất điện toàn bộ/đổi WAN-IP/mọi browser; phần miễn200/endurance/optical giữ nguyên.
+
+**Hiện hành03/11,14:40+07:** web/audio đã phát hành; live H264+Opus, bản ghi AAC và người dùng xác nhận nghe cả hai. Ghi thử30giây đã tắt lại, desired/observed=false, revision3. Backup metadata mã hóa VPS02:15/14ngày; Mini lấy lúc đăng nhập/mỗi giờ/30ngày bằng khóa chỉ tải ciphertext. Đã restore bản lưu thật vào DB tạm và kiểm MFA; Mini agent exit0. Đọc [checkpoint](v1-implementation.md) và [backup](metadata-backup.md). Các phần dưới ghi mốc cũ là lịch sử; không phải trạng thái hiện hành.
+
+**Cập nhật vận hành03/11,12:45+07:** SSH operator VPS đã khôi phục bằng key mới, host trust cũ giữ nguyên. Đã cài3LaunchAgent Air tự chạy sau đăng nhập; kiểm native tự phục hồi3,054s và tiến trình tunnel chạy lại0,523s, rồi kiểm riêng H264/playback qua VPS thành công. Ghi mới vẫn=false cả intent/native/disk,1065file/16.148.184.903byte không tăng; listener nội bộ chỉloopback, hash/plist khớp candidate. Đọc [runbook](air-autostart.md) và checkpoint. Retention1d vẫn chạy khi native hoạt động dù record=false/không người xem; native khởi động lại sẽ quét ngay. Chưa thử logout/reboot/mất WAN thật. Bài tải200/8h được miễn (`USER-ACCEPTED/WAIVED`), không ghi measured PASS.
+
+**Kết thúc bài ghi 03/11 lúc10:27+07:** source H264 và ghi SSD ổn định đến lúc kiểm tra; người dùng chấp nhận kết thúc sớm bài dự kiến24h. Đã tắt ghi mới, giữ live/playback. Phiên chính thực tế17h54m08,786s (`USER-ACCEPTED`), chưa đo đủ24h. Đọc [checkpoint](v1-implementation.md) trước mọi thao tác bật ghi lại.
+
+**Cập nhật 03/11/2026:** VPS DigitalOcean SGP1, tên miền `lao6789.com`, HTTPS, database, web/API và kết nối bảo mật Air → VPS đã được triển khai bản đầu theo yêu cầu. Đọc [checkpoint v1](v1-implementation.md) cho bằng chứng và các kiểm thử còn thiếu; các phát biểu chưa có VPS/domain/web bên dưới mô tả snapshot 02/11.
+
 Cập nhật 02/11/2026. Tài liệu này mô tả snapshot hiện tại, thay cho các hướng đấu nối/bàn giao trước đó. Mac mini là máy phát triển; Air tiếp tục chạy recording tại điểm camera. Đọc [bản bàn giao](../HANDOFF_MAC_MINI.md) khi mở chat mới.
+
+**Bổ sung phiên web v1, 02/11 tối:** người dùng đã duyệt Next.js/Fastify/PostgreSQL/Caddy cùng dependency/schema/API. Source web/Admin/RBAC, gateway Air và cấu hình triển khai đã có trên nhánh `tuanminh/secure-live-v1`; **chưa deploy**, chưa mua VPS/domain và chưa đổi phiên ghi Air. Mức tối đa200 live viewers đồng thời và8giờ/ngày, tải trung bình chưa biết; chỉ lưu video trên Air; nghiệm thu tại nơi làm việc, Lào làm sau. Đọc [checkpoint v1](v1-implementation.md) và [runbook triển khai web](web-deployment.md) để phân biệt bằng chứng local với các snapshot POC bên dưới.
 
 ## 1. Quyết định và tuyến hiện tại
 

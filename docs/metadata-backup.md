@@ -19,3 +19,5 @@ Clone mới không có key/runtime. GnuPG cần cài đúng nguồn đã duyệt
 Khi cần phục hồi thật: chọn bản đã kiểm checksum, chuẩn bị VPS/DB riêng, nhập passphrase trực tiếp trên Mini và dùng khóa AES trong backup để kiểm MFA. Phục hồi đè production, đổi credential hoặc xoay khóa cần quyền riêng. Không đặt passphrase vào argv/environment, không in cấu hình/SQL dump và không dùng database production làm mục tiêu thử.
 
 Giới hạn: chưa đi qua một đêm để chứng minh lần02:15 kế tiếp; đã kiểm timer enabled/next-fire và chạy service thật thành công. Mirror cần Mini đăng nhập và đường SSH từ IP được phép. Bản sao trên cùng Mini không thay cho bản khóa an toàn ngoài máy; không có dịch vụ lưu trữ ngoài nào được mua.
+
+**Bổ sung nghiệm thu03/11:** Mini tự chạy chu kỳ giờ tiếp theo lúc15:41:06+07, LaunchAgent runs=2/last exit0, mirror-status cập nhật và SHA bản mã hóa vẫn đúng. Đây là bằng chứng periodic mirror thật, không thay cho lần backup VPS theo lịch02:15 chưa đến giờ.
