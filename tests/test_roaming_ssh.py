@@ -52,3 +52,35 @@ class RoamingPolicyTest(unittest.TestCase):
         for text in (EFFECTIVE.replace('allowusers devone-air\n', ''), EFFECTIVE + 'allowusers root\n'):
             with self.assertRaises(ValueError):
                 validate_policy(text)
+
+    def test_management_principals_have_separate_forward_permissions(self):
+        base = EFFECTIVE.replace('allowusers devone-air', 'allowusers devone-air camera-maint-relay camera-maint-jump')
+        for principal, forwarding, listen, destination in [
+            ('devone-air', 'remote', '127.0.0.1:18554 127.0.0.1:19996', 'none'),
+            ('camera-maint-relay', 'remote', '127.0.0.1:19022', 'none'),
+            ('camera-maint-jump', 'local', 'none', '127.0.0.1:19022'),
+        ]:
+            policy = base.replace('allowtcpforwarding remote', 'allowtcpforwarding '+forwarding).replace(
+                'permitlisten 127.0.0.1:18554 127.0.0.1:19996', 'permitlisten '+listen).replace('permitopen none', 'permitopen '+destination)
+            with self.subTest(principal=principal):
+                self.assertEqual(validate_policy(policy, principal, management=True)['user'], principal)
+
+    def test_management_rejects_cross_role_and_unknown_access(self):
+        base = EFFECTIVE.replace('allowusers devone-air', 'allowusers devone-air camera-maint-relay camera-maint-jump')
+        for principal in ('camera-maint-relay', 'camera-maint-jump', 'root', 'unknown'):
+            with self.subTest(principal=principal), self.assertRaises(ValueError):
+                validate_policy(base, principal, management=True)
+        with self.assertRaises(ValueError):
+            validate_policy(base.replace('allowusers devone-air camera-maint-relay camera-maint-jump', 'allowusers *'), management=True)
+
+    def test_live_policy_cannot_gain_maintenance_listener(self):
+        base = EFFECTIVE.replace('allowusers devone-air', 'allowusers devone-air camera-maint-relay camera-maint-jump')
+        with self.assertRaises(ValueError):
+            validate_policy(base.replace('127.0.0.1:19996', '127.0.0.1:19996 127.0.0.1:19022'), management=True)
+
+    def test_openssh_repeated_allowusers_lines_are_aggregated_strictly(self):
+        base = EFFECTIVE.replace('allowusers devone-air', 'allowusers devone-air\nallowusers camera-maint-relay\nallowusers camera-maint-jump')
+        self.assertEqual(validate_policy(base, management=True)['user'], 'devone-air')
+        for extra in ('allowusers root\n', 'allowusers devone-air\n', 'allowusers *\n'):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                validate_policy(base+extra, management=True)
