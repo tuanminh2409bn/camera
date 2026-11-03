@@ -1,6 +1,6 @@
 # Quản trị Air từ Mini và khôi phục sau cài lại Mini
 
-Triển khai R1 ngày03/11/2026 theo yêu cầu người dùng. **SSH và SFTP qua VPS đã kiểm thành công; Screen Sharing chưa nghiệm thu**: user báo không đăng nhập được, đang xác minh đường xác thực macOS. Bảng kết quả chưa triển khai. Không tự đổi mật khẩu, bật VNC legacy, FileVault/auto-login hoặc reboot để chữa lỗi.
+Triển khai và nghiệm thu R1 ngày03/11/2026 theo yêu cầu người dùng. **Terminal, SFTP và điều khiển màn hình đã hoạt động khi Mini dùng hotspot khác WAN với Air.** Relay bảo trì tự phục hồi sau thử ngắt riêng tiến trình; live/âm thanh giữ nguyên và ghi hình vẫn tắt. Bảng kết quả để giai đoạn sau. Chưa thử cài lại Mini hoặc di chuyển Air sang mạng Hà Nội/Lào.
 
 ## Đường kết nối và quyền
 
@@ -9,6 +9,20 @@ Triển khai R1 ngày03/11/2026 theo yêu cầu người dùng. **SSH và SFTP q
 - Ba principal được ingress2222 cho phép: `devone-air` giữ đúng2reverse18554/19996; `camera-maint-relay` chỉ remote-listen19022; `camera-maint-jump` chỉ direct-forward tới127.0.0.1:19022. Tất cả public-key only/no shell/no PTY/root. Hai account mới home `/var/lib/<user>`, shell nologin, key restrict và permitlisten/permitopen tương ứng.
 - Mini vào Air qua jump rồi xác thực bằng key Air riêng; jump key không đủ để đăng nhập Air. Air key mới chỉ chấp nhận từ127.0.0.1, không agent/X11/userrc, PermitOpen chỉ127.0.0.1:5900; shell/SFTP trên Air được cấp cho người quản trị. Key LAN cũ from192.168.1.8 giữ nguyên.
 - Host keys/trust tái dùng từ known_hosts đã tin cậy; không thay key hoặc bỏ strict checking. Màn hình đi trong kết nối SSH đầu cuối Mini→Air. Người dùng đã tự bật Screen Sharing cho macbook; dseditgroup xác nhận macbook có quyền. Không suy kết quả đọc GroupMembership trống thành không có quyền: macOS có thể dùng membership theo UUID/nested group.
+
+## Ba thiết lập cần giữ trên Air
+
+Trong System Settings → General → Sharing:
+
+| Dịch vụ | Trạng thái cần giữ |
+|---|---|
+| Chia sẻ Màn hình / Screen Sharing | Bật; chỉ tài khoản `macbook` |
+| Đăng nhập Từ xa / Remote Login | Bật; chỉ `macbook`; quyền truy cập toàn bộ ổ đĩa tắt |
+| Quản lý Từ xa / Remote Management | Tắt |
+
+Giữ tùy chọn mọi người yêu cầu điều khiển và mật khẩu VNC riêng tắt. Screen Sharing và Remote Management không bật đồng thời. Ảnh owner cung cấp cho thấy Remote Management đang bật và quản lý Screen Sharing; sau khi owner chuyển đúng dịch vụ, phiên màn hình đã đăng nhập/điều khiển được. Quyền nhóm và local `authonly` đúng chưa đủ chứng minh chế độ chia sẻ đang đúng.
+
+Sau đổi dịch vụ, Remote Login từng bị tắt: phiên màn hình đã mở vẫn hoạt động nhưng kết nối SSH mới bị từ chối. Owner đã bật lại Remote Login; SSH mới và bài phục hồi sau đó thành công. Khi gặp lỗi, kiểm ba thiết lập và kết nối SSH mới trước; không đoán/đổi mật khẩu hoặc bật VNC legacy để chữa.
 
 ## Dùng trên Mini
 
@@ -68,7 +82,14 @@ Nếu gói đặt ở USB/thư mục khác, thay đúng đường dẫn. Utility
 
 Đã cài user/key/policy sau sao lưu, HUP chỉ listening parent SSH thay vì restart cả control group; live child giữ nguyên. SSH qua jump nhận Darwin/uid501 trên Air. SFTP gửi/tải fixture65536byte/hash khớp và đã dọn fixture sở hữu. Jump key thực bị chặn VPS shell, direct tới3001 và remote-listen19023. Source live vẫn H264+Opus, ghi false/no latch; loop19022 chỉ127.0.0.1.
 
-Chưa nghiệm thu Screen Sharing, Mini ở WAN khác hoặc relay tự phục hồi. Không gọi các phần chưa đo là PASS. User đã báo nhập mật khẩu Air không vào được; đã xác nhận quyền macbook có hiệu lực/RFB server đáp ứng, đang chờ kiểm authonly một lần do owner tự nhập tại Air. Không đổi password hoặc bật legacy authentication.
+Nghiệm thu thực tế03/11:
+
+- Owner xác nhận điều khiển Desktop Air từ Mini sau khi sửa đúng chế độ chia sẻ. Native client hiện cửa sổ Air và `Điều khiển màn hình=on`; mật khẩu do owner nhập, không lưu vào Keychain của client.
+- Gửi TERM chỉ tới PID relay bảo trì vừa đọc/xác minh ownership; LaunchAgent tự nối lại. Thời gian quan sát tiến trình/TCP là0,282s, không phải latency màn hình hoặc p95. Native camera và tunnel live giữ nguyên PID; ghi false. SSH/SFTP mới sau phục hồi tiếp tục thành công.
+- Owner chuyển riêng Mini sang hotspot, Air/camera/router giữ nguyên. IPv4 public Mini khác IP nơi làm việc; SSH mới qua2222 thành công; SFTP put/get65536byte/hash khớp, fixture đã dọn. Owner xác nhận điều khiển Air qua hotspot; native client hiện đúng Air/control on. Sau bài thử owner đã đưa Mini về Wi-Fi cũ; listener thử15900 đã đóng.
+- Năm LaunchAgent chạy, một native; runtime hash khớp source và plist0600. Ghi native/disk=false, không auth latch, latest record mtime giữ nguyên; số file giảm do retention cũ. Không reboot hoặc đổi mạng Air trong bài R1 này.
+
+Đây là bằng chứng Mini khác WAN, không phải thử Air ở subnet/WAN mới, Hà Nội/Lào, mất điện toàn hệ thống hoặc reboot bộ5agent. Chưa cài lại OS thật; giữ giới hạn này khi bàn giao. Chất lượng mạng khách vẫn cần DHCP/LAN không cách ly và outbound2222.
 
 Backup trước đổi: VPS `/var/backups/devone-management-20261103/sshd_config_camera_tunnel.before`; Air `.local/management-backup-20261103/authorized_keys.before`. Nếu rollback: bootout đúng agent mới, chờ job/PID mất và19022 nhả; kiểm manifest rồi bỏ đúng key/user/rule mới, phục hồi ingress cũ sau sshd validation/HUP. Không restore đè authorized_keys khi đã có thay đổi mới ngoài scope; không đụng live/backup key hoặc dữ liệu ghi.
 

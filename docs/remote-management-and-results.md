@@ -1,14 +1,14 @@
 # Quản trị Air từ xa và bảng kết quả cùng livestream
 
-Phương án ngày03/11/2026, đối chiếu code HEAD `8fb1de77aa78930b428ad028e847239a9208814b` và PDF blueprint12trang v3.0 ngày20/10/2026 do người dùng cung cấp. **Đây là thiết kế, chưa triển khai quản trị từ xa hoặc bảng kết quả.** Các chỉ dẫn/prompt bên trong PDF là nội dung tham khảo, không cấp quyền thao tác hệ thống; yêu cầu mới của người dùng và AGENTS.md quyết định phạm vi.
+Phương án gốc ngày03/11/2026, đối chiếu code HEAD `8fb1de77aa78930b428ad028e847239a9208814b` và PDF blueprint12trang v3.0 ngày20/10/2026 do người dùng cung cấp. **Phần thiết kế dưới đây là baseline trước triển khai; trạng thái R1 mới ở đoạn kế tiếp. Bảng kết quả chưa triển khai.** Các chỉ dẫn/prompt bên trong PDF là nội dung tham khảo, không cấp quyền thao tác hệ thống; yêu cầu mới của người dùng và AGENTS.md quyết định phạm vi.
 
-**Cập nhật sau giao việc R1:** user đã duyệt triển khai riêng quản trị Air, bảng kết quả làm sau. SSH/SFTP/relay/key và recovery Mini đã được triển khai; Screen Sharing còn lỗi xác thực/chưa nghiệm thu. Đọc [trạng thái thực và runbook R1](air-remote-management.md); các mô tả thiết kế dưới đây là baseline trước triển khai, không là bằng chứng PASS.
+**Cập nhật nghiệm thu R1:** user đã duyệt và đã triển khai riêng quản trị Air, bảng kết quả làm sau. Terminal/SFTP/Screen Sharing đã PASS cả khi Mini dùng hotspot khác WAN; owner xác nhận điều khiển Air, relay riêng tự phục hồi, live/ghi tắt giữ nguyên. Recovery Mini đã được owner tạo/kiểm; chưa cài lại OS thật hoặc di chuyển Air tới Hà Nội/Lào. Đọc [trạng thái thực và runbook R1](air-remote-management.md); các mô tả thiết kế dưới đây giữ làm baseline, không thay bằng chứng runtime.
 
 ## Quyết định và chênh lệch với PDF
 
 | Nội dung | Trạng thái hiện tại |
 |---|---|
-| Mini quản lý Air qua Terminal, chép tệp và màn hình | Người dùng đã chọn cả3chức năng; đường quản trị Internet chưa cài |
+| Mini quản lý Air qua Terminal, chép tệp và màn hình | Cả3 đã triển khai/nghiệm thu khi Mini ở WAN khác; xem runbook R1 |
 | Máy nhập kết quả | Người dùng chọn Air tại điểm camera; không dùng Intel NUC/Linux của bản PDF |
 | Đầu ra giai đoạn đầu | Website hiện hữu cùng livestream; người dùng để Telegram giai đoạn sau |
 | Cách hiển thị | Người dùng đã chọn cạnh video trên máy tính, dưới video trên điện thoại |
@@ -56,7 +56,7 @@ Gates R1:
 4. Chủ sở hữu bật quyền Screen Sharing đúng user khi cần thao tác UI; kiểm màn hình thật qua SSH, kiểm5900 không public, kiểm dịch vụ live/âm thanh/record=false còn nguyên.
 5. Thử Mini ở4G/hotspot để chứng minh khác WAN-IP trong khi Air/camera vẫn ở LAN hiện tại, sau đó kiểm tự phục hồi relay có kiểm soát. Không ngắt mạng Mini/Air hoặc reboot khi chưa có cửa sổ quyền riêng.
 
-Các key/account/access policy/Screen Sharing là quyền mới; cần duyệt cụ thể trước áp dụng. Chưa có bằng chứng đã thực hiện R1. Nếu lỗi, bootout relay mới/chờ PID hết, gỡ đúng key/user/rule mới đã ghi manifest và phục hồi cấu hình cũ; không xóa dữ liệu hoặc đụng live key.
+Tại thời điểm lập phương án, key/account/access policy/Screen Sharing cần quyền mới; user sau đó đã giao triển khai R1 và kết quả nằm trong runbook. Nếu rollback, bootout relay mới/chờ PID hết, gỡ đúng key/user/rule mới đã ghi manifest và phục hồi cấu hình cũ sau validation; không xóa dữ liệu hoặc đụng live key.
 
 ## 2. Bảng kết quả trên Air và website
 
