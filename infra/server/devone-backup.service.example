@@ -1,0 +1,15 @@
+[Unit]
+Description=Encrypted camera account and configuration backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/devone/ops/metadata_backup.py create
+TimeoutStartSec=15min
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/backups/devone /var/lib/devone-backup
