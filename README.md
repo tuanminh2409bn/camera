@@ -4,6 +4,7 @@ Phát triển trực tiếp trên **Mac mini**; **MacBook Air** chạy luồng c
 
 ## Trạng thái hiện tại
 
+- **Chuẩn bị NUC thay Air,05/11:** [hướng dẫn Ubuntu và bàn giao cho ChatGPT web](docs/mini-pc-setup.md). NUC Intel N97/8GB/512GB, Ubuntu Server26.04.1amd64, headless/không mã hóa toàn ổ; USB đã báo Flash Completed/1Successful target. Bước tiếp theo là boot/cài OS; runtime Linux chưa port, Air vẫn là runtime hiện hành. Tài liệu nằm trên nhánh `tuanminh/secure-live-v1`.
 - Website [lao6789.com](https://lao6789.com) đã chạy HTTPS, Admin/MFA, phân quyền người xem, live và xem lại từ Air.
 - Camera101 H264 Baseline720p/25fps + AAC16kHz/mono → Air → tunnel → VPS. FFmpeg chuyển riêng AAC→Opus cho WebRTC, video copy. Người dùng xác nhận nghe được live và bản ghi mới.
 - **Ghi mới đang tắt** sau bài thử âm thanh30giây; live/playback vẫn chạy. Không tự bật lại. Video chỉ lưu trên Air, retention1ngày, cleaner startup/chu kỳ30phút, reserve15GiB. Air cần bật/cắm nguồn/mở nắp/đăng nhập.
