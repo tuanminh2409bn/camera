@@ -83,6 +83,7 @@ Host camera-air
     UserKnownHostsFile "~/Library/Application Support/CameraRemote/ssh/air.known_hosts"
 
 Host *
+    IgnoreUnknown UseKeychain
     IdentitiesOnly yes
     IdentityAgent none
     UseKeychain yes

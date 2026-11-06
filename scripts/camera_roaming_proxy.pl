@@ -115,7 +115,41 @@ sub capture {
     }
     return {ok=>!$too_large && $eof && defined($status) && $status==0 ? 1:0,stdout=>$too_large?'':$data};
 }
+sub parse_linux_networks {
+    my ($raw, $physical) = @_;
+    return [] unless defined($raw) && length($raw) <= 65536 && ref($physical) eq 'CODE';
+    my $interfaces = eval { JSON::PP::decode_json($raw) };
+    return [] unless ref($interfaces) eq 'ARRAY' && @$interfaces <= 128;
+    my (@networks, %seen);
+    for my $interface (@$interfaces) {
+        next unless ref($interface) eq 'HASH';
+        my $name = $interface->{ifname};
+        next unless defined($name) && !ref($name) && $name =~ /\A[A-Za-z0-9][A-Za-z0-9_.:-]{0,14}\z/;
+        next unless $physical->($name);
+        next unless ref($interface->{flags}) eq 'ARRAY' && ref($interface->{addr_info}) eq 'ARRAY';
+        my %flags = map { !ref($_) ? ($_ => 1) : () } @{$interface->{flags}};
+        next unless $flags{UP} && $flags{LOWER_UP} && $flags{MULTICAST};
+        for my $address (@{$interface->{addr_info}}) {
+            next unless ref($address) eq 'HASH' && ($address->{family}//'') eq 'inet' && ($address->{scope}//'') eq 'global';
+            my $local = $address->{local};
+            my $number = ipv4_number($local);
+            next unless defined($number) && ($number >> 24) != 0 && ($number >> 24) != 127 && ($number >> 28) < 14;
+            my $prefix = $address->{prefixlen};
+            next unless defined($prefix) && !ref($prefix) && $prefix =~ /\A[0-9]{1,2}\z/ && $prefix >= 8 && $prefix <= 30;
+            my $mask = (0xffffffff << (32 - $prefix)) & 0xffffffff;
+            next unless valid_mask($mask) && !$seen{"$name/$local/$prefix"}++;
+            push @networks, { interface => $name, address => $local, mask => $mask };
+        }
+    }
+    return \@networks;
+}
 sub active_networks {
+    if ($^O eq 'linux') {
+        my $result = capture(['/usr/sbin/ip', '-j', '-4', 'address', 'show', 'up'], 2);
+        return [] unless $result->{ok};
+        return parse_linux_networks($result->{stdout}, sub { -e '/sys/class/net/'.$_[0].'/device' });
+    }
+    return [] unless $^O eq 'darwin';
     my $list=capture(['/sbin/ifconfig','-l'],2); return [] unless $list->{ok};
     my @networks;
     for my $interface (split /\s+/,$list->{stdout}) {
@@ -138,11 +172,28 @@ sub pin_verified {
         '--write-out','%{http_code}','https://'.$host.'/'],5);
     return $result->{ok} && $result->{stdout}=~/\A[23][0-9]{2}\z/ ? 1:0;
 }
+sub new_probe_uuid {
+    open(my $random, '<:raw', '/dev/urandom') or return undef;
+    AirRecordingSupervisor::_fd_cloexec($random);
+    my $bytes = '';
+    while (length($bytes) < 16) {
+        my $count = sysread($random, my $part, 16 - length($bytes));
+        next if !defined($count) && $! == EINTR;
+        last unless defined($count) && $count > 0;
+        $bytes .= $part;
+    }
+    close($random);
+    return undef unless length($bytes) == 16;
+    substr($bytes, 6, 1, chr((ord(substr($bytes, 6, 1)) & 0x0f) | 0x40));
+    substr($bytes, 8, 1, chr((ord(substr($bytes, 8, 1)) & 0x3f) | 0x80));
+    my $uuid = unpack('H*', $bytes);
+    $uuid =~ s/\A(.{8})(.{4})(.{4})(.{4})(.{12})\z/$1-$2-$3-$4-$5/;
+    return $uuid;
+}
 sub discover {
     my ($identity,$networks)=@_;
-    my $uuid=capture(['/usr/bin/uuidgen'],2);return [] unless $uuid->{ok};
-    my $id=$uuid->{stdout};$id=~s/\s+\z//;
-    return [] unless $id=~/\A[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\z/;
+    my $id = new_probe_uuid();
+    return [] unless defined($id);
     my $probe='<?xml version="1.0" encoding="utf-8"?><Probe><Uuid>'.$id.'</Uuid><Types>inquiry</Types></Probe>';
     my $socket=IO::Socket::INET->new(LocalAddr=>'0.0.0.0',LocalPort=>37020,Proto=>'udp',ReuseAddr=>1);
     return [] unless $socket;

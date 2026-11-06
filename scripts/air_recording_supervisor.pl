@@ -21,6 +21,7 @@ my %OWNED_CHILDREN;
 
 use constant {
     PINNED_MEDIAMTX_SHA256   => '2d21dd021fa7d0e667b24f8850555f29d718424c19d5ce9e18163a8b893034fd',
+    PINNED_LINUX_AMD64_SHA256 => 'bfa372a169751bbf6da2ebddcbcd2f7d3ab3dca3cc553022162eda36fe03e73d',
     RESERVE_BYTES            => 15 * 1024 * 1024 * 1024,
     MAX_DURATION_SEC         => 86400,
     DEFAULT_DISK_CHECK_SEC   => 10.0,
@@ -398,9 +399,20 @@ sub load_and_extract_secrets {
     };
 }
 
+sub platform_binary_sha256 {
+    my ($system, $machine) = @_;
+    $system = lc(defined($system) ? $system : $^O);
+    $machine = lc(defined($machine) ? $machine : (POSIX::uname())[4]);
+    if ($machine eq 'x86_64' || $machine eq 'amd64') {
+        return PINNED_MEDIAMTX_SHA256 if $system eq 'darwin';
+        return PINNED_LINUX_AMD64_SHA256 if $system eq 'linux';
+    }
+    die "Unsupported native supervisor platform.\n";
+}
+
 sub verify_mediamtx_binary {
     my ($workspace_root, $expected_sha256) = @_;
-    $expected_sha256 = PINNED_MEDIAMTX_SHA256 unless defined $expected_sha256;
+    $expected_sha256 = platform_binary_sha256() unless defined $expected_sha256;
     my $bin_path = validate_no_symlink_chain(
         $workspace_root, '.local', 'tools', 'mediamtx-1.21.3', 'mediamtx'
     );
@@ -801,7 +813,7 @@ sub run_supervisor {
     my $clock_fn         = $opts->{clock_fn}         || \&Time::HiRes::time;
     my $disk_check_fn    = $opts->{disk_check_fn};
     my $pause_api_fn     = $opts->{pause_api_fn};
-    my $expected_sha256  = $opts->{expected_sha256}  || PINNED_MEDIAMTX_SHA256;
+    my $expected_sha256  = $opts->{expected_sha256}  || platform_binary_sha256();
     my $disk_interval    = $opts->{disk_interval}    || DEFAULT_DISK_CHECK_SEC;
     my $max_log_bytes    = $opts->{max_log_bytes}    || DEFAULT_MAX_LOG_BYTES;
     my $log_rotations    = exists($opts->{log_rotations}) ? $opts->{log_rotations} : DEFAULT_LOG_ROTATIONS;
