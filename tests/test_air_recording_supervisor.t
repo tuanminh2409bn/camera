@@ -221,6 +221,40 @@ PERL
     unlike($combined_logs, qr/X{100}|Y{100}/, 'oversized payload discarded rather than truncated');
 };
 
+subtest 'Publisher credentials are extracted before arbitrary child log redaction' => sub {
+    my $token = 'eyJ.Publisher_42+/==';
+    for my $scalar ($token, qq{"$token"}, "'$token'") {
+        my $fx = setup_fixture_workspace();
+        my $cfg = File::Spec->catfile($fx->{workspace}, '.local', 'mediamtx.recording.poc.yml');
+        write_file_mode($cfg, slurp_file($cfg) .
+            "    forward:\n      - dest: whips://uplink_user:Outbound%21Pass\@uplink.invalid/live/whip\n" .
+            "        whipBearerToken: $scalar # publisher only\n", 0600);
+        my $info = AirRecordingSupervisor::load_and_extract_secrets($fx->{workspace});
+        my $clean = AirRecordingSupervisor::redact_text(
+            "opaque $token encoded " . AirRecordingSupervisor::uri_escape_upper($token) .
+            ' credentials uplink_user Outbound!Pass', $info->{secrets});
+        unlike($clean, qr/Publisher_42|uplink_user|Outbound/, 'bare and encoded publisher secrets removed');
+    }
+    my $clean = AirRecordingSupervisor::redact_text(
+        'whips://unknown:HiddenOutbound99@uplink.invalid/live/whip whipBearerToken=FallbackBearer123', []);
+    unlike($clean, qr/HiddenOutbound99|FallbackBearer123/, 'generic WHIPS URL and token field filters');
+
+    for my $scalar ('|', '>', '[opaque]', '*alias', '"unterminated', 'invalid token') {
+        my $fx = setup_fixture_workspace();
+        my $cfg = File::Spec->catfile($fx->{workspace}, '.local', 'mediamtx.recording.poc.yml');
+        write_file_mode($cfg, slurp_file($cfg) . "    forward:\n      - dest: whips://uplink.invalid/live/whip\n        whipBearerToken: $scalar\n", 0600);
+        eval { AirRecordingSupervisor::load_and_extract_secrets($fx->{workspace}) };
+        like($@, qr/Unsupported whipBearerToken/, 'unsupported secret scalar refused before child start');
+    }
+    for my $line ('"whipBearerToken": SecretToken', '{whipBearerToken: SecretToken}') {
+        my $fx = setup_fixture_workspace();
+        my $cfg = File::Spec->catfile($fx->{workspace}, '.local', 'mediamtx.recording.poc.yml');
+        write_file_mode($cfg, slurp_file($cfg) . "        $line\n", 0600);
+        eval { AirRecordingSupervisor::load_and_extract_secrets($fx->{workspace}) };
+        like($@, qr/Unsupported whipBearerToken/, 'unsupported secret mapping refused before child start');
+    }
+};
+
 subtest 'Path, permission, symlink, and binary SHA256 guards' => sub {
     my $fx = setup_fixture_workspace();
 
@@ -409,6 +443,63 @@ PERL
         });
     };
     like($@, qr/auth latch is active/i, 'subsequent run refused while auth-stop.latch exists');
+};
+
+subtest 'Forward destination errors never control camera readiness or auth latch' => sub {
+    for my $protocol (qw(WHIP WHIPS RTSP RTSPS RTMP RTMPS SRT MOQT)) {
+        for my $message ('bad status code: 401 (Unauthorized)', '403 Forbidden',
+                         'i/o timeout', 'is publishing', 'source ready') {
+            is(AirRecordingSupervisor::classify_child_log_line(
+                "ERR [path live] [$protocol dest 0 1234abcd] $message"
+            ), 'forward_destination', "$protocol destination message is isolated: $message");
+        }
+    }
+    for my $code (401, 403) {
+        is(AirRecordingSupervisor::classify_child_log_line(
+            "ERR [path live] [RTSP source] bad status code: $code"
+        ), 'camera_auth_failure', "camera $code still fails closed");
+    }
+
+    my $fx = setup_fixture_workspace(child_script => <<'PERL');
+$|=1;
+print "INF [path live] stream is available and online, 1 track (H264)\n";
+print "ERR [path live] [WHIPS dest 0 1234abcd] bad status code: 401 (Unauthorized)\n";
+print "ERR [path live] [RTSPS dest 1 5678abcd] i/o timeout\n";
+select(undef, undef, undef, 0.12);
+print "ERR [path live] [RTSP source] i/o timeout\n";
+print "INF [path live] [WHIPS dest 0 1234abcd] source ready, is publishing\n";
+select(undef, undef, undef, 5);
+PERL
+    my @observed;
+    my $real_writer = \&AirRecordingSupervisor::write_status_json;
+    my $rc;
+    {
+        no warnings 'redefine'; # Observe state transitions without changing them.
+        local *AirRecordingSupervisor::write_status_json = sub {
+            push @observed, { %{$_[1]} };
+            return $real_writer->(@_);
+        };
+        $rc = AirRecordingSupervisor::run_supervisor({
+            workspace => $fx->{workspace}, duration => 0.3,
+            expected_sha256 => $fx->{bin_sha}, disk_interval => 0.04,
+            disk_check_fn => sub { 30 * 1024 * 1024 * 1024 },
+            pause_api_fn => sub { die "publisher error must not pause local recording\n" },
+            term_timeout_sec => 0.15, kill_timeout_sec => 0.2,
+        });
+    }
+    is($rc, 0, 'publisher failures do not stop owned child before duration');
+    my $sdir = File::Spec->catdir($fx->{workspace}, '.local', 'recording-service');
+    ok(!-e File::Spec->catfile($sdir, 'auth-stop.latch'), 'publisher rejection never creates camera latch');
+    my $status = read_json_file(File::Spec->catfile($sdir, 'status.json'));
+    is($status->{reason}, 'duration_elapsed', 'supervisor completes its requested duration');
+    ok(!$status->{recordingPaused}, 'local recording was not paused');
+    my @transitions;
+    for my $entry (@observed) {
+        push @transitions, $entry->{state}
+            if !@transitions || $transitions[-1] ne $entry->{state};
+    }
+    is_deeply(\@transitions, [qw(starting running degraded stopped)],
+        'only camera events change readiness; publisher recovery cannot hide camera loss');
 };
 
 subtest 'Disk reserve check before start, low-disk pause via API, and failed-pause child termination' => sub {
@@ -659,6 +750,50 @@ PERL
     }
     ok(scalar(grep { $_->{state} eq 'running' && $_->{availableBytes} == 29 * 1024 * 1024 * 1024 } @observed),
         'running status updates with current free space');
+};
+
+subtest 'Managed login starts with recording off, including low or unknown disk' => sub {
+    for my $available (30 * 1024**3, 10 * 1024**3, undef) {
+        my $fx = setup_fixture_workspace(child_script => <<'PERL');
+$|=1;
+die "recording was not disabled before exec\n" unless ($ENV{MTX_PATHS_LIVE_RECORD}//'') eq 'false';
+die "inherited retention override\n" if exists $ENV{MTX_PATHS_LIVE_RECORDDELETEAFTER};
+print "2026/11/02 12:00:00 INF [path live] [RTSP source] ready: 1 track (H264)\n";
+select(undef,undef,undef,5);
+PERL
+        local $ENV{MTX_PATHS_LIVE_RECORD} = 'true';
+        local $ENV{MTX_PATHS_LIVE_RECORDDELETEAFTER} = '0';
+        my $rc = AirRecordingSupervisor::run_supervisor({
+            workspace => $fx->{workspace}, duration => 0.2,
+            expected_sha256 => $fx->{bin_sha}, managed_start => 1,
+            disk_check_fn => sub { return $available },
+            term_timeout_sec => 0.15, kill_timeout_sec => 0.2,
+        });
+        is($rc, 0, 'managed child survives until controlled shutdown');
+        my $sdir = File::Spec->catdir($fx->{workspace}, '.local', 'recording-service');
+        my $st = read_json_file(File::Spec->catfile($sdir, 'status.json'));
+        is($st->{reason}, 'duration_elapsed', 'fake child was started, not refused or crashed');
+        is($st->{recordingPaused} ? 1 : 0, !defined($available) || $available < 15 * 1024**3 ? 1 : 0,
+            'low or unknown disk keeps safety pause latched for the session');
+        like(slurp_file(File::Spec->catfile($sdir, 'supervisor.log')), qr/RTSP source.*ready/,
+            'native startup is allowed so its cleaner can run');
+    }
+};
+
+subtest 'Managed login respects an existing camera authentication latch without retry' => sub {
+    my $fx = setup_fixture_workspace(child_script => 'die "must not start";');
+    my $sdir = File::Spec->catdir($fx->{workspace}, '.local', 'recording-service');
+    mkdir($sdir, 0700) or die $!;
+    write_file_mode(File::Spec->catfile($sdir, 'auth-stop.latch'), '{}', 0600);
+    my $rc = eval { AirRecordingSupervisor::run_supervisor({
+        workspace => $fx->{workspace}, expected_sha256 => $fx->{bin_sha}, managed_start => 1,
+        disk_check_fn => sub { die 'must not reach startup' },
+    }) };
+    is($@, '', 'managed stop does not cause launchd failure retries');
+    is($rc, 0, 'successful stop leaves launchd idle until operator review');
+    my $st = read_json_file(File::Spec->catfile($sdir, 'status.json'));
+    ok($st->{authLatchActive}, 'latch remains active');
+    ok(!defined($st->{mediamtxPid}), 'no native child was started');
 };
 
 done_testing();

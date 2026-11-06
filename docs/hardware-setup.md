@@ -9,7 +9,7 @@
 3. Mac mini và MacBook Air → cùng mạng Wi-Fi đó.
 4. Air đặt cùng camera, cắm nguồn, mở nắp và giữ đăng nhập để phiên ghi hoạt động.
 
-Camera static192.168.1.64/24; tại snapshot Mini192.168.1.8, Air192.168.1.12. ER605 không tham gia tuyến; không cắm lại để thử mật khẩu hoặc đổi DHCP/IP camera. IP quản trị switch không phải địa chỉ nguồn video.
+Camera đã bật DHCP theo quyền riêng03/11 để di chuyển không ER605; router hiện vẫn cấp192.168.1.64/24. Mini192.168.1.8/Air192.168.1.12 là snapshot nơi làm việc, không là yêu cầu LAN khách. ER605 không tham gia tuyến; đọc [runbook di chuyển](portable-deployment.md) cho Air discovery có pin và SSH2222. Không ép IP/DHCP về snapshot cũ hoặc dùng IP quản trị switch làm nguồn video.
 
 ## Xem và ghi
 

@@ -1,15 +1,23 @@
 # Dịch vụ giám sát ghi hình cục bộ trên MacBook Air (`air_recording_supervisor.pl`)
 
+**Nghiệm thu phục hồi03/11:** user đã tự reboot/đăng nhập Air rồi tắt/bật Wi-Fi riêng Air. Boot time mới15:23:38,3LaunchAgent chạy,1native, runtime hash khớp, source H264/AAC và VPS H264/Opus tự trở lại; playback3s sau cả hai bước HTTP200/H264+AAC. Không bật dịch vụ thủ công, không đổi FileVault/auto-login hoặc camera/router. Ghi vẫn tắt/native+disk=false và intent=false/revision3. Đây thay trạng thái “chưa reboot” trong snapshot cũ dưới đây; không suy thành thử mất điện toàn hệ thống hoặc WAN-IP mới. Xem [vận hành](operations.md) và [checkpoint](v1-implementation.md).
+
+**Âm thanh03/11:** Camera101 đã bật AAC16kHz/mono, cấu hình video giữ nguyên. Ghi thử30giây lúc14:33 đã có H264+AAC và người dùng xác nhận nghe được trên website; sau đó ghi tắt lại, desired/observed=false, revision3. Live được chuyển riêng AAC→Opus ở VPS; video/bản ghi vẫn chỉ nằm trên Air. Bản ghi cũ không có tiếng. [Checkpoint](v1-implementation.md), [backup metadata](metadata-backup.md).
+
+**Bổ sung03/11,12:45+07:** đã cài3LaunchAgent tự chạy sau đăng nhập; supervisor/gateway dùng code trong `.local/air-autostart-runtime`. Xem [tự chạy và dọn bản ghi](air-autostart.md). Ghi mới vẫn tắt trên disk/native/intent. Cleaner quét khi native start rồi khoảng30phút/lần, không phụ thuộc người xem/cờ ghi; máy/dịch vụ tắt thì không quét, native chạy lại sẽ xét ngay bản ghi quá hạn. Đã kiểm restart native/tunnel có kiểm soát; chưa logout/reboot thật. Những ví dụ session-only/CLI bên dưới là chế độ cũ, không bootstrap cùng lúc với LoginAgent hiện tại.
+
 Tài liệu này mô tả trình giám sát ghi hình nền cục bộ (`scripts/air_recording_supervisor.pl`) và mẫu cấu hình `launchd` phiên người dùng (`infra/macos/recording-agent.plist.example`) cho luồng camera RTSP qua MediaMTX `v1.21.3` trên macOS.
 
 Đã bật trên Air ngày02/11/2026 lúc16:32+07, workspace thực tế `/Users/macbook/Developer/camera`. Xem [checkpoint commissioning](implementation-status.md) để biết các kiểm tra đã đạt và giới hạn. Các lệnh bên dưới chạy **trên Air**, không chạy trên Mac mini.
 
+**Cập nhật 03/11 lúc10:27+07:** ghi mới đã tắt theo yêu cầu người dùng sau khi kiểm tra ổn định. Native `record=false`, desired=false được lưu trên VPS; supervisor vẫn running/ok và `recordingPaused=false` vì đây là dừng theo người vận hành, không phải safety pause. MediaMTX tiếp tục phục vụ live/playback. Người dùng nghiệm thu kết thúc sớm bài24h; thời gian ghi liên tục xác minh17h54m08,786s. Chi tiết tại [checkpoint v1](v1-implementation.md). Retention1d vẫn có hiệu lực với bản ghi cũ; không tự bật ghi hoặc đổi retention.
+
 ## 1. Phạm vi và ranh giới triển khai
 
-- **Chỉ chạy trong phiên đăng nhập hiện tại (Session-only LaunchAgent):** Mẫu `infra/macos/recording-agent.plist.example` dùng placeholder `__WORKSPACE__` và được render/bootstrap trực tiếp từ thư mục dự án cục bộ (ví dụ `.local/recording-service/recording-agent.plist`), **không** cài đặt vào `/Library/LaunchDaemons`, `/Library/LaunchAgents` hay `~/Library/LaunchAgents`.
-- **Không tự phục hồi qua đăng xuất/khởi động lại hoặc gập máy:** `KeepAlive` được đặt `false`. Dịch vụ chỉ chạy khi người dùng đang đăng nhập, máy mở nắp (lid-open) và cắm nguồn AC (sử dụng `/usr/bin/caffeinate -i -s` để ngăn idle/system sleep khi đang cắm sạc). Không thay đổi cấu hình FileVault, tự động đăng nhập, cài đặt sleep toàn hệ thống hay cấu hình mạng/WAN/router.
-- **Chưa xác nhận độ bền 24 giờ:** Trình giám sát cung cấp cơ chế kiểm soát tiến trình con, khóa phiên, chốt dừng khi sai mật khẩu camera và tạm dừng ghi khi đầy ổ đĩa, nhưng chưa có bằng chứng chạy bền liên tục 24 giờ thực tế hay số đo độ trễ quang học p95 glass-to-glass.
-- **Không bao gồm Admin website/RBAC/Internet exposure:** Mọi listener của MediaMTX chỉ gắn với loopback `127.0.0.1` (`8554` RTSP, `8889`/`8189` WebRTC, `9997` Control API, `9996` Playback). Không mở cổng ra LAN/Internet, không có cơ sở dữ liệu hay máy chủ xác thực đa người dùng.
+- **Hiện tại:** mẫu `recording-login.plist.example` và hai profile gateway/tunnel được cài vào `/Users/macbook/Library/LaunchAgents/`, chạy GUI user501. Supervisor dùng `KeepAlive.SuccessfulExit=false`/throttle60s để phục hồi khi lỗi và giữ auth latch khi cần review. Mẫu `recording-agent.plist.example` vẫn dành cho chế độ session-only cũ, không chạy duplicate.
+- **Điều kiện:** người dùng phải đăng nhập macOS, mở nắp và cắm AC; caffeinate chỉ áp dụng cho dịch vụ. Chưa kiểm logout/reboot thật. Không thay FileVault, tự đăng nhập, sleep toàn máy hoặc mạng/WAN/router.
+- **Nghiệm thu:** bài dự kiến24h kết thúc sớm theo user, thực tế17h54m08,786s, `USER-ACCEPTED`; visual latency được miễn đo optical. Không đổi thành measured24h/p95 hoặc yêu cầu chạy lại phần được miễn.
+- **Interface:** MediaMTX Air chỉloopback (`8554`,`8889`/`8189`,`9997`,`9996`); gateway9900 chỉloopback. Website/Admin/RBAC/database/Internet do các dịch vụ riêng trên VPS phục vụ, xem runbook web.
 
 ## 2. Cấu trúc tệp riêng tư và bảo mật thông tin xác thực
 

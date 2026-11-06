@@ -1,0 +1,27 @@
+[Unit]
+Description=Restricted roaming SSH ingress for the camera Air tunnel
+After=network.target
+ConditionPathIsFile=/etc/ssh/sshd_config_camera_tunnel
+
+[Service]
+Type=simple
+ExecStartPre=/usr/sbin/sshd -t -f /etc/ssh/sshd_config_camera_tunnel
+ExecStart=/usr/sbin/sshd -D -e -f /etc/ssh/sshd_config_camera_tunnel
+RuntimeDirectory=sshd-camera-tunnel
+RuntimeDirectoryMode=0700
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/run/sshd-camera-tunnel
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

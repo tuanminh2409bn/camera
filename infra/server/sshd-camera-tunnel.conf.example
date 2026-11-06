@@ -1,0 +1,44 @@
+# Dedicated roaming ingress. The operator SSH service on port 22 stays separate.
+# Reuse the already trusted host key; never generate a replacement implicitly.
+Port 2222
+ListenAddress 0.0.0.0
+PidFile /run/sshd-camera-tunnel/sshd.pid
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+AllowUsers devone-air
+PermitRootLogin no
+AuthenticationMethods publickey
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+HostbasedAuthentication no
+UsePAM yes
+AuthorizedKeysFile .ssh/authorized_keys
+StrictModes yes
+UseDNS no
+
+AllowTcpForwarding remote
+AllowStreamLocalForwarding no
+PermitOpen none
+PermitListen 127.0.0.1:18554 127.0.0.1:19996
+GatewayPorts no
+MaxSessions 0
+PermitTTY no
+PermitTunnel no
+X11Forwarding no
+AllowAgentForwarding no
+PermitUserRC no
+PermitUserEnvironment no
+
+LoginGraceTime 20
+MaxAuthTries 3
+MaxStartups 10:30:30
+PerSourceMaxStartups 2
+ClientAliveInterval 15
+ClientAliveCountMax 3
+TCPKeepAlive yes
+Compression no
+PrintMotd no
+PrintLastLog no
+LogLevel ERROR

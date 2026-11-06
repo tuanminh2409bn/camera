@@ -10,6 +10,12 @@ __pycache__/
 *.py[cod]
 .venv/
 node_modules/
+.next/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+playwright-report/
+test-results/
 tmp/
 medimtx*.poc.yml
 mediamtx*.poc.yml

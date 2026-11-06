@@ -1,0 +1,16 @@
+Host devone-server
+    HostName REPLACE_WITH_SERVER_IP
+    User devone-air
+    IdentityFile /Users/macbook/Developer/camera/.local/ssh/server-tunnel/id_ed25519
+    UserKnownHostsFile /Users/macbook/Developer/camera/.local/ssh/server-tunnel/known_hosts
+    GlobalKnownHostsFile /dev/null
+    IdentitiesOnly yes
+    BatchMode yes
+    StrictHostKeyChecking yes
+    ExitOnForwardFailure yes
+    ServerAliveInterval 15
+    ServerAliveCountMax 3
+    ConnectTimeout 10
+    RequestTTY no
+    RemoteForward 127.0.0.1:18554 127.0.0.1:8554
+    RemoteForward 127.0.0.1:19996 127.0.0.1:9900

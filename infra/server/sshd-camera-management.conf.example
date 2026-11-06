@@ -1,0 +1,13 @@
+# Include these Match blocks in the dedicated camera ingress after global rules.
+# The complete candidate must explicitly allow exactly these three principals:
+# AllowUsers devone-air camera-maint-relay camera-maint-jump
+# Global live policy remains unchanged. Validate every principal before reload.
+Match User camera-maint-relay
+    AllowTcpForwarding remote
+    PermitListen 127.0.0.1:19022
+    PermitOpen none
+
+Match User camera-maint-jump
+    AllowTcpForwarding local
+    PermitListen none
+    PermitOpen 127.0.0.1:19022

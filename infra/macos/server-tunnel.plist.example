@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.devone.camera.server-tunnel</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/ssh</string><string>-N</string><string>-F</string>
+    <string>/Users/macbook/Developer/camera/.local/ssh/server-tunnel/config</string>
+    <string>devone-server</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/macbook/Developer/camera</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>15</integer>
+  <key>Umask</key><integer>63</integer>
+  <key>StandardOutPath</key><string>/Users/macbook/Developer/camera/.local/web-gateway/tunnel-stdout.log</string>
+  <key>StandardErrorPath</key><string>/Users/macbook/Developer/camera/.local/web-gateway/tunnel-stderr.log</string>
+</dict></plist>

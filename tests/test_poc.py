@@ -228,6 +228,24 @@ class TestRedactionAndPermissions(unittest.TestCase):
         self.assertIn("synthetic:\n    source: publisher", docker_yml)
 
 
+class TestNativePlatforms(unittest.TestCase):
+    def test_nuc_linux_amd64_is_supported_without_changing_macos_targets(self):
+        for system, machine, expected in (
+            ("Linux", "x86_64", "linux_amd64"),
+            ("Linux", "amd64", "linux_amd64"),
+            ("Darwin", "arm64", "darwin_arm64"),
+            ("Darwin", "x86_64", "darwin_amd64"),
+        ):
+            with self.subTest(system=system, machine=machine):
+                self.assertEqual(poc.detect_platform_key(system, machine), expected)
+                self.assertIn(expected, poc.MEDIAMTX_RELEASES)
+
+    def test_unverified_native_platforms_fail_closed(self):
+        for system, machine in (("Linux", "aarch64"), ("Windows", "AMD64")):
+            with self.subTest(system=system, machine=machine), self.assertRaises(poc.PocError):
+                poc.detect_platform_key(system, machine)
+
+
 class TestInstallMediaMTX(unittest.TestCase):
     def _build_tar_bytes(self, members: dict) -> bytes:
         buf = io.BytesIO()

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check camera operations every minute
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=5s
+Unit=devone-monitor.service
+
+[Install]
+WantedBy=timers.target

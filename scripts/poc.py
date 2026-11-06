@@ -30,6 +30,10 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 MEDIAMTX_VERSION = "v1.21.3"
 MEDIAMTX_RELEASES: Dict[str, Dict[str, str]] = {
+    "linux_amd64": {
+        "url": "https://github.com/bluenviron/mediamtx/releases/download/v1.21.3/mediamtx_v1.21.3_linux_amd64.tar.gz",
+        "sha256": "0a2ea7eba96023631efa1bea7804823a9145b043b6646a8a05798d4ac24ed635",
+    },
     "darwin_arm64": {
         "url": "https://github.com/bluenviron/mediamtx/releases/download/v1.21.3/mediamtx_v1.21.3_darwin_arm64.tar.gz",
         "sha256": "bc1a0762fd18ffb413bcd81dcb9a072ac159fbd1f27e79ac6f14598aaac5ed3f",
@@ -342,6 +346,8 @@ def render_mediamtx_config(
 def detect_platform_key(system_name: Optional[str] = None, machine_name: Optional[str] = None) -> str:
     sys_norm = (system_name or platform.system()).lower()
     mach_norm = (machine_name or platform.machine()).lower()
+    if sys_norm == "linux" and mach_norm in ("x86_64", "amd64"):
+        return "linux_amd64"
     if sys_norm == "darwin" and mach_norm in ("arm64", "aarch64"):
         return "darwin_arm64"
     if sys_norm == "darwin" and mach_norm in ("x86_64", "amd64"):

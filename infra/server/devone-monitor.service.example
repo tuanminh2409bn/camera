@@ -1,0 +1,16 @@
+[Unit]
+Description=Read-only camera operational checks for Admin
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/devone/ops/operations_monitor.py
+TimeoutStartSec=30
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/devone-monitor
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
