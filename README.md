@@ -1,10 +1,15 @@
 # DEV.ONE Secure Live
 
-Phát triển trực tiếp trên **Mac mini**; **MacBook Air** chạy luồng camera và ghi hình tại điểm đặt. Đọc [bản bàn giao cho chat mới](HANDOFF_MAC_MINI.md) rồi [trạng thái triển khai](docs/implementation-status.md).
+Phát triển trực tiếp trên **Mac mini**; đang chuyển runtime camera sang **ASUS NUC Ubuntu** theo yêu cầu05/11, Air đã tắt/ngừng dùng. Đọc [runbook NUC](docs/nuc-linux-runtime.md), [bản bàn giao](HANDOFF_MAC_MINI.md) và [trạng thái triển khai](docs/implementation-status.md).
 
 ## Trạng thái hiện tại
 
-- **Chuẩn bị NUC thay Air,05/11:** [hướng dẫn Ubuntu và bàn giao cho ChatGPT web](docs/mini-pc-setup.md). NUC Intel N97/8GB/512GB, Ubuntu Server26.04.1amd64, headless/không mã hóa toàn ổ; USB đã báo Flash Completed/1Successful target. Bước tiếp theo là boot/cài OS; runtime Linux chưa port, Air vẫn là runtime hiện hành. Tài liệu nằm trên nhánh `tuanminh/secure-live-v1`.
+- **Runtime NUC, 06/11:** năm dịch vụ NUC và hai tunnel đã hoạt động; live qua VPS có hình H.264 và tiếng Opus, owner xác nhận xem được. Đã kiểm reboot NUC trước khi đổi Netplan, và kiểm camera/tunnel qua Ethernet khi Wi‑Fi NUC tắt. Ghi mới vẫn tắt. Chưa kiểm reboot sau đổi Netplan, mất điện thật hoặc mạng Hà Nội/Lào. Xem [runbook NUC](docs/nuc-linux-runtime.md).
+
+## Bằng chứng nền tảng trước khi ngừng Air
+
+Các mục dưới là lịch sử nghiệm thu03/11 của tuyến Air/VPS; live NUC hiện hành được mô tả ở trên. Video cũ trên Air chưa được chuyển sang NUC.
+
 - Website [lao6789.com](https://lao6789.com) đã chạy HTTPS, Admin/MFA, phân quyền người xem, live và xem lại từ Air.
 - Camera101 H264 Baseline720p/25fps + AAC16kHz/mono → Air → tunnel → VPS. FFmpeg chuyển riêng AAC→Opus cho WebRTC, video copy. Người dùng xác nhận nghe được live và bản ghi mới.
 - **Ghi mới đang tắt** sau bài thử âm thanh30giây; live/playback vẫn chạy. Không tự bật lại. Video chỉ lưu trên Air, retention1ngày, cleaner startup/chu kỳ30phút, reserve15GiB. Air cần bật/cắm nguồn/mở nắp/đăng nhập.
@@ -22,7 +27,7 @@ git clone https://github.com/tuanminh2409bn/camera.git
 cd camera
 ```
 
-Trong chat mới, yêu cầu Codex đọc `AGENTS.md`, `HANDOFF_MAC_MINI.md` và checkpoint; kiểm tra trạng thái Air bằng thao tác chỉ đọc trước khi sửa. Không tạo phiên MediaMTX thứ hai, thêm IP/route tạm hoặc chạy lại helper mạng đã vô hiệu hóa.
+Trong chat mới, yêu cầu Codex đọc `AGENTS.md`, `HANDOFF_MAC_MINI.md` và checkpoint; kiểm tra trạng thái NUC bằng thao tác chỉ đọc trước khi sửa. Không tạo phiên MediaMTX thứ hai, thêm IP/route tạm hoặc chạy lại helper mạng đã vô hiệu hóa.
 
 ## Bản đồ dự án
 

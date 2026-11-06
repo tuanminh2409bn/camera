@@ -1,6 +1,6 @@
 # Chuẩn bị mini PC thay MacBook Air
 
-Ngày 05/11/2026, giờ Việt Nam. **Trạng thái: đã tạo USB và quan sát Etcher báo thành công; chưa xác nhận boot/cài Ubuntu trên NUC, chưa port runtime hoặc chuyển production.** Source ứng dụng đối chiếu: `63fadbe`, nhánh `tuanminh/secure-live-v1`.
+Ngày 05/11/2026, giờ Việt Nam. **Cập nhật mới: NUC đã cài Ubuntu26.04.1, SSH/SFTP bằng khóa Ed25519 riêng PASS; owner đã tắt/ngừng dùng Air và yêu cầu chuyển runtime sang NUC.** Runtime Linux đã phục vụ live và được thử Ethernet tại nhà; xem giới hạn kiểm chứng trong [runbook NUC hiện hành](nuc-linux-runtime.md). Các bước tạo USB/cài OS và prompt ChatGPT web bên dưới là mốc chuẩn bị trước đó, không cần làm lại. Source nền đối chiếu: `63fadbe`, nhánh `tuanminh/secure-live-v1`; công việc Linux hiện tại ở `codex/nuc-linux-runtime`.
 
 ## Điểm tiếp tục cho ChatGPT web
 
