@@ -1,10 +1,10 @@
 # DEV.ONE Secure Live
 
-Phát triển trực tiếp trên **Mac mini**; đang chuyển runtime camera sang **ASUS NUC Ubuntu** theo yêu cầu05/11, Air đã tắt/ngừng dùng. Đọc [runbook NUC](docs/nuc-linux-runtime.md), [bản bàn giao](HANDOFF_MAC_MINI.md) và [trạng thái triển khai](docs/implementation-status.md).
+**Mac mini** là máy phát triển. **ASUS NUC Ubuntu** chạy camera tại điểm lắp đặt. VPS Singapore phục vụ website, API và luồng WebRTC. Xem [runbook NUC](docs/nuc-linux-runtime.md), [bản bàn giao](HANDOFF_MAC_MINI.md) và [trạng thái triển khai](docs/implementation-status.md).
 
 ## Trạng thái hiện tại
 
-- **Runtime NUC, 06/11:** năm dịch vụ NUC và hai tunnel đã hoạt động; live qua VPS có hình H.264 và tiếng Opus, owner xác nhận xem được. Đã kiểm reboot NUC trước khi đổi Netplan, và kiểm camera/tunnel qua Ethernet khi Wi‑Fi NUC tắt. Ghi mới vẫn tắt. Chưa kiểm reboot sau đổi Netplan, mất điện thật hoặc mạng Hà Nội/Lào. Xem [runbook NUC](docs/nuc-linux-runtime.md).
+- **Bàn giao tại Lào, 09/11/2026:** người dùng xác nhận thiết bị hoạt động tốt. Lúc 15:46 +07, năm dịch vụ NUC đang chạy và VPS release `20261108T101614Z` nhận cả hai luồng H.264/Opus. Web dùng luồng **Nét nhất** (2688×1520) có tiếng. Quyết định vận hành là dùng NUC và giữ ghi mới tắt. Toàn màn hình Safari và Chrome vẫn chờ nghiệm thu trên iPhone thật. Xem [checkpoint](docs/v1-implementation.md#vận-hành-tại-lào-và-bàn-giao--09112026).
 
 ## Bằng chứng nền tảng trước khi ngừng Air
 

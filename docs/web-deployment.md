@@ -133,6 +133,20 @@ ICE trực tiếp có TCP fallback; chưa có TURN. Nếu nhà mạng tại nơi
 
 Quyền tải là quyền gọi download endpoint, không phải DRM: người đã được xem vẫn nhận byte video. API giới hạn mặc định5 playback/download đồng thời, đoạn1–300 giây, tối đa8 giờ Admin/12 giờ viewer. Tua theo thời gian trên Air; native gửi `Accept-Ranges: none`, không có hỗ trợ byte-range206. Kiểm Safari và playback file thật trước nghiệm thu.
 
+## Hai mức chất lượng live trên NUC
+
+| Mức trên web | Luồng | Cấu hình camera cần kiểm |
+|---|---|---|
+| Tiêu chuẩn | Kênh 102 → `live-standard` | 1280 × 720, H.264 Baseline, 25 fps, CBR 2048 kbps, GOP 25, AAC |
+| Nét nhất | Kênh 101 → `live` | 2688 × 1520, H.264 Baseline, 25 fps, CBR thử từ 6144 kbps, GOP 25, AAC |
+
+Đây là profile ứng viên. Đối chiếu tùy chọn và đọc lại cấu hình trên đúng firmware. Xác nhận không có B-frame, giữ H.264+ và SVC tắt. FFmpeg copy H.264 và chuyển AAC sang Opus cho từng luồng trên cùng cổng loopback 18555. Hai luồng camera cùng chạy nên cộng bitrate của cả hai khi kiểm upload tại nơi đặt NUC. Mỗi phiên xem chỉ nhận luồng đã chọn, và mức Nét nhất sẽ tăng egress theo số người dùng mức đó. [Thông số camera](https://assets.hikvision.com/prd/public/all/doc/m000117797/DS-2CD2643G2-LIZS2U_Datasheet_20250716.pdf) · [Tương thích WebRTC](https://mediamtx.org/docs/features/webrtc-specific-features)
+
+1. Trong cửa sổ triển khai đã duyệt, lưu cấu hình kênh 101/102 và các cấu hình đang chạy để hoàn nguyên. Xác nhận ghi mới tắt và giữ `standardLiveEnabled=false` trong lúc chuẩn bị.
+2. Dùng `render_deployment.py air --with-standard` với đầu vào kênh 101 qua proxy `127.0.0.1:18556`. Candidate thêm `live-standard` từ kênh 102 và tắt ghi. Dùng `render_deployment.py server --with-audio --with-standard` ở VPS và unit `devone-audio-standard.service` cho luồng phụ. Đối chiếu candidate với cấu hình đang chạy trước khi thay. Hai luồng dùng tunnel hiện có, qua reverse RTSP 18554.
+3. Kiểm cùng lúc hai path trên NUC và VPS, gồm độ phân giải, hình/tiếng, cờ ghi, bitrate, CPU, mất gói và tình trạng đứng hình. Bật `standardLiveEnabled` khi cả hai luồng đã sẵn sàng. Web ưu tiên Tiêu chuẩn nếu luồng này sẵn sàng khi mở player. Client gọi API live cũ vẫn dùng `live`.
+4. Trên thiết bị và mạng của khách hàng Hà Nội, đối chiếu hai mức với cùng cảnh quay. Kiểm hình, tiếng, thời gian vào hình, độ trễ khi đang xem, đổi mức và đặt lại thu phóng. Mục tiêu độ trễ là quanh 1 giây theo mốc khách hàng đã chấp nhận. Nếu 4 MP không đạt trên mạng đó, thử hạ bitrate hoặc 1920 × 1080 rồi so lại trước khi chốt profile. Khi cần hoàn nguyên, trả flag, hai profile camera và cấu hình NUC/VPS về bản đã lưu, rồi xác nhận lại live, tiếng và ghi tắt.
+
 ## Đo 200 peers và 8 giờ
 
 1. Đo trước1→10→50→100→200 peer tại server đã thuê. Người dùng theo dõi hình thật ở nơi làm việc; tải phát sinh từ máy đo riêng để không biến đường xuống văn phòng thành nút thắt duy nhất. Không stress Mini đang làm việc.

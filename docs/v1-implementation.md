@@ -318,3 +318,69 @@ Mốc source hiện hành `66a4ff6dce03332eb00cda19db5cd93b01525190` đã push l
 ## Thử Ethernet NUC tại nhà — 06/11/2026
 
 **Thử Ethernet NUC06/11:** Netplan đã lưu `enp1s0` DHCP IPv4, route-metric100, optional=true; cấu hình merge giữ match MAC hiện hữu, candidate SHA256 `6436b43640ce999c9d556c2fc2709f3731ef1115274d45e00133c5d0ffe8c865`. Owner tự thực hiện sudo và xác nhận readback. Dây DHCP192.168.1.12 được ưu tiên, Wi-Fi dự phòng192.168.1.11. Sau khi owner chạy bài thử có timer tự phục hồi: trong snapshot `wlo1` DOWN, camera RTSP và cả hai socket tunnel2222 đều ESTABLISHED từ IP Ethernet; native H264/AAC ready/record=false, VPS H264/Opus ready và gateway online/observed=false/no auth latch. Bài thử kết thúc success, Wi-Fi đã UP trở lại; các kết nối vẫn dùng Ethernet. Lần chuyển đầu live chờ cổng cũ VPS nhả trước khi tự nối lại, không đo thời gian phục hồi. Owner xác nhận live có hình và tiếng bình thường; chưa xác định thời điểm xem so với cửa sổ 70 giây hoặc model/trình duyệt. Chưa reboot sau đổi Netplan, thử mất điện thật, mạng khách/Hà Nội/Lào hoặc SSH/SFTP qua jump key riêng bị thiếu.
+
+## Live hai mức trên production
+
+Xác minh trên camera, NUC và VPS lúc khoảng 09:22 ngày 07/11/2026, giờ Việt Nam. VPS chạy release `20261106T073907Z` với `standardLiveEnabled=true`. Gói 111 tệp khớp source phát hành, SHA-256 `3e3e14d2b4b8fdbcf0d9eff5130f8858b6f11e87605b7bd58822e91b1ca7ee55`.
+
+- **Nét nhất:** kênh 101 → `live`, 2688×1520, H.264 Baseline 25 fps, CBR 6144 kbps, GOP 25, AAC. **Tiêu chuẩn:** kênh 102 → `live-standard`, 1280×720, H.264 Baseline 25 fps, CBR 2048 kbps, GOP 25, AAC. Camera đã đọc lại sau khi áp dụng. `ffprobe` qua reverse RTSP xác nhận đúng hai độ phân giải, H.264/AAC và 0 B-frame theo thông tin stream.
+- Cả hai path VPS `ready=true` với H.264/Opus và byte tăng trong mẫu 4 giây. Monitor 12/12 OK tại thời điểm kiểm tra. NUC có 5 unit active, ghi `false` trên cả hai path, 0 path có bản ghi. VPS giữ `recording_intent.desired=false`, revision 3. Gateway online, không auth latch.
+- Trang chủ và tài nguyên JavaScript production trả HTTP 200. Tài nguyên phục vụ có menu chất lượng, zoom hai ngón và nhãn NUC. `/api/health` trả 200, `/api/live/qualities` trả 401 khi chưa đăng nhập. Bản phát hành đã qua `npm run check` trên Mini và VPS, 7 bài Chromium với fixture trên Mini và 89 kiểm tra Perl trên NUC.
+- Giữ release trước cùng bản sao cấu hình camera, NUC và VPS trong vùng riêng trên từng máy. SSH NUC LAN timeout từ Mini tại lần kiểm 07/11. Đọc NUC qua relay bằng SSH operator VPS và xác minh host key đã tin cậy thành công. Tuyến jump bảo trì bằng khóa chuyên dụng vẫn cần kiểm riêng.
+- Chưa nghiệm thu đăng nhập production và giải mã trên trình duyệt khách sau cutover, thao tác hai ngón trên thiết bị thật hoặc độ trễ 4 MP tại Hà Nội. Mốc người dùng chấp nhận trực quan trước đó thuộc cấu hình 720p.
+
+## Giữ nét qua mất nguồn camera
+
+Ngày 07/11/2026, owner tự rút/cắm lại dây PoE của camera sau khi đã xác nhận độ nét từ lần Auxiliary Focus. Kiểm tra sau khi owner báo cắm lại, khoảng 09:56–09:57 giờ Việt Nam.
+
+- Camera được discovery và xác minh HTTPS public-key pin lại. Uptime ở ảnh mốc là 2.005 giây, sau khi cắm lại là 100 giây, xác nhận camera đã khởi động lại. Thời gian gián đoạn/phục hồi live chưa được đo vì thao tác rút/cắm diễn ra sau cửa sổ theo dõi ban đầu.
+- So trực quan ảnh JPEG gốc trước và sau, cùng 2688×1520, thấy chi tiết đồng hồ và tấm lịch vẫn rõ. Góc quay xê dịch nhẹ và độ sáng/nhiễu giữa hai ảnh có khác. Đây là bằng chứng ảnh tĩnh trực tiếp camera trong một lần cấp lại nguồn trên mạng hiện tại. Chế độ vẫn `MANUAL`; trong bài thử chỉ đọc trạng thái và ảnh.
+- Camera vẫn DHCP, kênh 101 giữ 2688×1520, CBR 6144 kbps; kênh 102 giữ 1280×720, CBR 2048 kbps; cả hai 25 fps. NUC có năm unit active và hai path ready với H264/AAC. VPS có hai path ready H264/Opus, byte tăng lần lượt 2.263.815 và 771.551 trong mẫu 3 giây. Gateway online, authLatched=false, isPaused=false, observed=false; cả hai path NUC record=false.
+- Bài thử xác nhận camera giữ được độ nét quan sát được và nguồn live tự phục hồi qua một lần mất nguồn camera. Mạng khách tại Hà Nội/Lào, góc/khoảng cách/ánh sáng ở nơi lắp mới và nghiệm thu hình trên trình duyệt sau bài thử cần bằng chứng riêng.
+
+## Web live nét nhất có tiếng
+
+Ngày 07/11/2026, web production chuyển sang release `20261107T031619Z`. Mọi phiên xem trên web chọn luồng nguồn bằng `POST /api/live/sessions` và phát với âm thanh bật. Nếu `play()` bị trình duyệt chặn, nút **Phát hình và tiếng** tiếp tục trên cùng phiên. Giao diện giữ thu phóng, đặt lại, toàn màn hình và dừng xem.
+
+- Trên Mini, bài hồi quy tái hiện trạng thái `muted=true` trước sửa. Sau sửa `npm run check` PASS format, TypeScript, 14 API tests và build. `npm run test:browser` PASS 8 bài Chromium với fixture, gồm phiên mới/mở lại có tiếng, nguồn cố định, zoom hai ngón và phục hồi sau `NotAllowedError` được mô phỏng.
+- VPS build `npm ci --ignore-scripts` và `npm run check` PASS. Manifest 111 tệp khớp, chỉ CSS, trình phát live và bài browser thay đổi so với release trước. SHA-256 archive `269b245b9a14b5f66c176ef628a8a10a45371928a0a500ecdbcc09c0de899ccf`. Chuyển symlink `current`, restart riêng `devone-web`, xác minh 7 tệp JS public khớp build và `/api/health` OK. Release trước `20261106T073907Z` được giữ để rollback.
+- Hai path VPS H.264/Opus ready và nhận thêm dữ liệu trong lúc chuyển release. PID API/media/hai adapter audio và hash cấu hình máy chủ khớp trước/sau. Gateway online, ghi tắt. Camera đọc lại `MANUAL`, 2688×1520 CBR 6144 kbps 25 fps, audio enabled.
+- Phiên người xem thật trên Chrome mở và phát 2688×1520 với `paused=false`, `muted=false`, giao diện báo **Nét nhất** và **Âm thanh đang bật**. Chưa kiểm Safari trên thiết bị thật hoặc nghe qua loa trong bài này.
+
+## Mật khẩu người xem và nút hiện mật khẩu
+
+Ngày 07/11/2026, owner duyệt phát hành `20261107T100938Z` lên `lao6789.com`. Quản trị viên có thể tạo và đặt lại mật khẩu người xem từ 6 đến 256 ký tự. Mật khẩu Admin tối thiểu 12 ký tự và có xác thực hai bước. Ô mật khẩu đăng nhập mặc định được che và có nút hiện hoặc ẩn bằng chuột hay bàn phím.
+
+- Mac mini chạy `npm run check` và `npm run test:browser`. Cả 14 bài API và 8 bài Chrome đều đạt, gồm tạo người xem bằng 6 chữ số, đăng nhập, đổi mật khẩu, thu hồi phiên cũ và đăng nhập lại.
+- VPS chạy `npm ci --ignore-scripts` và `npm run check` trên bản chuẩn bị. Manifest khớp 111 tệp, gồm 6 tệp thay đổi. SHA-256 archive `90c4bcd0f91c3a01bc1d2c0fac7b63cf10ee26b12ee8fef509bb63da0321a752`. Sau khi chuyển `current` và khởi động lại web, API và các unit media phụ thuộc API, 7 tệp JS công khai khớp build. Giữ `20261107T031619Z` để hoàn nguyên.
+- Production trả HTTP 200 cho `/api/health` và 401 cho `/api/auth/session` khi chưa đăng nhập. Chrome xác nhận nút hiện/ẩn, giữ giá trị đang nhập và CSP không phát sinh lỗi. Bản API trên VPS vượt qua bài kiểm tra quy tắc 6 ký tự của người xem và 12 ký tự của Admin bằng dữ liệu mẫu. Việc đổi mật khẩu trên tài khoản thật do owner thực hiện.
+- NUC không phản hồi và cả hai luồng camera chưa sẵn sàng từ trước khi chuyển bản. Trạng thái nguồn camera vẫn như vậy khi kiểm tra sau phát hành. Chưa xác minh hình hoặc tiếng qua luồng camera thật trong cửa sổ này.
+
+
+## Toàn màn hình trên iPhone — triển khai 09/11/2026
+
+Đã triển khai qua SSH release web `20261108T101614Z` lúc khoảng 09:09 +07 ngày 09/11. So với release trước `20261107T100938Z`, candidate chỉ thay component live và kiểm thử trình duyệt liên quan. Khi trình duyệt hỗ trợ Fullscreen API, web tiếp tục dùng API đó; khi không hỗ trợ, web dùng `webkitEnterFullscreen()` của video nếu có. Hành vi thực tế vẫn phụ thuộc trình duyệt và thiết bị.
+
+Trên VPS, `npm run check` của candidate PASS; 9 kiểm thử trình duyệt Chrome cục bộ PASS, bao gồm mô phỏng nhánh iPhone và nhánh fullscreen tiêu chuẩn. Sau phát hành, HTTPS trang chính và `/api/health` trả 200; bảy tệp JavaScript công khai khớp build mới và có cả hai nhánh fullscreen. Chưa kiểm trên iPhone thật, nên chưa xác nhận Safari hoặc Chrome iPhone hiển thị và điều khiển đúng trên thiết bị khách.
+
+Hai đường media trên VPS không ready trước và sau phát hành; adapter âm thanh có vòng tự khởi động lại từ trước thao tác. API và media chính không bị khởi động lại; chỉ dịch vụ web được chuyển bản. NUC vẫn truy cập SSH được, năm dịch vụ edge active tại thời điểm kiểm tra, nhưng chưa xác định nguyên nhân mất nguồn live và chưa nghiệm thu hình/tiếng sau phát hành. Ghi mới không được bật. Người dùng đã tự thêm UFW cho IP Mac mini để SSH; quy tắc đó vẫn còn.
+
+
+## Vận hành tại Lào và bàn giao — 09/11/2026
+
+Ngày 09/11, người dùng xác nhận thiết bị kết nối tại Lào hoạt động tốt. Trước đó, ngày 08/11 người dùng xác nhận live có hình và tiếng tại Lào. Lúc 15:46 +07 ngày 09/11, kiểm tra chỉ đọc cho thấy VPS chạy release `20261108T101614Z`; `live` và `live-standard` đều ready, có H.264/Opus và byte nhận tăng trong mẫu 3 giây. Web, API, media và hai adapter audio đều active. Năm dịch vụ edge trên NUC active; hai kết nối RTSP từ NUC đến camera đang established. Đây là snapshot, không phải phép đo độ trễ, thời gian hoạt động liên tục hay bảo đảm kết nối tương lai. Hai luồng từng không ready trong cửa sổ phát hành buổi sáng; thời điểm và nguyên nhân phục hồi chưa được xác định.
+
+Mac mini đã truy cập được NUC từ xa qua SSH jump hiện có và mở trang quản trị camera qua tunnel chỉ trên loopback. Camera được xác minh qua public-key pin đã lưu; IP camera lúc kiểm tra là DHCP `192.168.1.6`, có thể thay đổi. Người dùng tự đăng nhập, nói sẽ tự chỉnh zoom quang học và lấy nét; chưa xác nhận đã chỉnh xong hoặc các giá trị mới. Không tự thay đổi zoom/focus hoặc suy đoán giá trị hiện tại. Kết nối tunnel trên Mac là tạm thời; kiểm trạng thái và định danh camera lại trước lần dùng sau.
+
+Bản sửa toàn màn hình iPhone đã phát hành nhưng chưa được nghiệm thu trên iPhone thật bằng Safari hoặc Chrome. Quyết định giữ ghi mới tắt và ngừng dùng Air vẫn có hiệu lực; lần kiểm tra này không thay đổi hoặc xác minh lại trạng thái ghi. Không giả định có video cũ trên NUC. Quy tắc UFW hạn chế theo IP do người dùng tự thêm để triển khai vẫn còn theo lần kiểm tra phát hành; cần kiểm trạng thái thật trước khi thao tác.
+
+Tại thời điểm kiểm tra, checkout Mac mini ở nhánh `main`, HEAD `b26aa37`, còn các thay đổi nguồn và tài liệu từ những đợt trước. Mã nguồn Git và release VPS được đối chiếu riêng.
+
+## Kiểm tra trước khi đồng bộ GitHub — 09/11/2026
+
+Commit nguồn `e971be4` tập hợp hỗ trợ hai luồng live, web phát luồng nét nhất có tiếng, cập nhật mật khẩu người xem và toàn màn hình iPhone. Git tree của commit nguồn là `627767dbbb7668d1b10deba9a42061eba114fec9`. Mốc VPS trong bàn giao vẫn là release `20261108T101614Z` đã quan sát lúc 15:46 +07. Đợt kiểm tra này chạy trên Mac mini với fixture cục bộ.
+
+- `npm run check` đạt kiểm tra định dạng, TypeScript, 14 bài API và build. `npm run test:browser` đạt 9 bài Chrome, gồm WebRTC H.264 bằng nguồn tổng hợp và mô phỏng nhánh fullscreen iPhone.
+- `make check` chạy 71 bài, 70 đạt và 1 bỏ qua theo điều kiện sẵn có vì GnuPG vắng trong PATH. Bốn script Perl qua kiểm tra cú pháp. `prove -v tests/*.t` đạt các bộ gateway, proxy và Linux, gồm trường hợp hai kết nối RTSP đồng thời. Các bài mới trong supervisor cũng đạt.
+- Bộ supervisor trên Mac mini ARM có ba lỗi đã tái hiện với `b26aa37`. Một bài yêu cầu pin của kiến trúc được hỗ trợ, hai bài phụ thuộc thời điểm tiến trình giả khởi động. Chạy `prove -v --exec '/usr/bin/arch -x86_64 /usr/bin/perl' tests/*.t` qua Rosetta còn hai lỗi về thời gian. Các bài kiểm tra giữ nguyên. Bằng chứng NUC Linux gần nhất nằm ở [mốc hai luồng live](#live-hai-mức-trên-production).
+- Đã kiểm tra `git diff --check`, liên kết Markdown nội bộ, sáu plist mẫu, quy tắc ignore và mẫu bí mật trong phần thêm vào. Trình duyệt trên iPhone thật vẫn chờ nghiệm thu riêng.
