@@ -1,0 +1,26 @@
+[Unit]
+Description=Camera standard live audio adapter (AAC to Opus, H264 copy)
+BindsTo=devone-media.service
+PartOf=devone-media.service
+After=devone-media.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=devone
+Group=devone
+ExecStart=/usr/bin/ffmpeg -hide_banner -nostdin -loglevel warning -rtsp_transport tcp -timeout 15000000 -i rtsp://127.0.0.1:18554/live-standard -map 0:v:0 -map 0:a:0? -c:v copy -c:a libopus -b:a 48k -ar 48000 -ac 1 -application lowdelay -frame_duration 20 -f rtsp -rtsp_transport tcp -muxdelay 0.1 rtsp://127.0.0.1:18555/live-standard
+Restart=always
+RestartSec=3
+TimeoutStopSec=5
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+MemoryMax=256M
+
+[Install]
+WantedBy=devone-media.service

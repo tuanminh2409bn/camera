@@ -7,6 +7,7 @@
   "mediaApiOrigin": "http://127.0.0.1:9997",
   "mediaUser": "web-backend",
   "mediaPassword": "REPLACE_WITH_RANDOM_MEDIA_PASSWORD",
+  "standardLiveEnabled": false,
   "airOrigin": "http://127.0.0.1:19996",
   "airToken": "REPLACE_WITH_SHARED_RANDOM_AIR_GATEWAY_TOKEN",
   "loginHours": 12,

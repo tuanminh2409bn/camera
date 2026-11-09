@@ -53,7 +53,7 @@ export class RecordingService {
       throw new ApiFailure(
         409,
         "AIR_SAFETY_STOP",
-        "Air đang khóa ghi do dung lượng hoặc xác thực. Cần xử lý tại máy trước khi bật lại.",
+        "NUC đang khóa ghi do dung lượng hoặc xác thực. Cần xử lý tại máy trước khi bật lại.",
       );
     return state;
   }
@@ -71,7 +71,7 @@ export class RecordingService {
         ).rows[0];
         if (!intent) throw new Error("Missing recording intent");
         const state = await this.air.status();
-        // Initial install observes the existing Air session without changing it.
+        // Initial install observes the existing recorder without changing it.
         // Only an explicit administrator action enables reconciliation.
         if (Number(intent.revision) === 0) return;
         if (

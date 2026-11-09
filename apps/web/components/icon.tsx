@@ -73,6 +73,18 @@ const shapes: Record<string, ReactNode> = {
   left: <path d="m15 5-7 7 7 7" />,
   right: <path d="m9 5 7 7-7 7" />,
   check: <path d="m5 12 4 4L19 6" />,
+  eye: (
+    <>
+      <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </>
+  ),
+  "eye-off": (
+    <>
+      <path d="M4.8 8.3A14 14 0 0 0 2 12s3.6 6 10 6c1.5 0 2.9-.3 4.1-.9M9 6.4a10.8 10.8 0 0 1 3-.4c6.4 0 10 6 10 6a14 14 0 0 1-2.7 3.5" />
+      <path d="m3 3 18 18" />
+    </>
+  ),
   lock: (
     <>
       <rect x="5" y="10" width="14" height="11" rx="3" />

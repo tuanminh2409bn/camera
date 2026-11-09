@@ -27,6 +27,7 @@ const config = configSchema.parse({
   mediaApiOrigin: "http://127.0.0.1:19997",
   mediaUser: "browser-test",
   mediaPassword: newToken(),
+  standardLiveEnabled: true,
   airOrigin: "http://127.0.0.1:19996",
   airToken: newToken(),
   allowInsecureLocalhost: true,
@@ -61,11 +62,22 @@ const mediaConfig = {
       user: config.mediaUser,
       pass: config.mediaPassword,
       ips: ["127.0.0.1"],
-      permissions: [{ action: "read", path: "live" }, { action: "api" }],
+      permissions: [
+        { action: "read", path: "live" },
+        { action: "read", path: "live-standard" },
+        { action: "api" },
+      ],
     },
   ],
   paths: {
     live: {
+      source: "publisher",
+      alwaysAvailable: true,
+      alwaysAvailableTracks: [{ codec: "H264" }, { codec: "Opus" }],
+      record: false,
+      maxReaders: 200,
+    },
+    "live-standard": {
       source: "publisher",
       alwaysAvailable: true,
       alwaysAvailableTracks: [{ codec: "H264" }, { codec: "Opus" }],

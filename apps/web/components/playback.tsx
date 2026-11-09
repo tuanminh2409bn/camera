@@ -8,7 +8,7 @@ function recordingStartMilliseconds(value: string) {
   const milliseconds = Date.parse(value);
   const fraction =
     value.match(/T\d{2}:\d{2}:\d{2}\.(\d+)(?:Z|[+-]\d{2}:\d{2})$/i)?.[1] ?? "";
-  // Date truncates finer precision; never request data before the Air interval.
+  // Date truncates finer precision, so round up to stay inside the recording interval.
   return milliseconds + (/[1-9]/.test(fraction.slice(3)) ? 1 : 0);
 }
 const time = (value: number) =>
@@ -156,7 +156,7 @@ export function Playback({ auth }: { auth: Auth }) {
         <div className="empty">
           <Icon name="clock" />
           <h2>Chưa có bản ghi khả dụng</h2>
-          <p>Air cần trực tuyến để truy cập bản ghi. Hãy thử làm mới sau.</p>
+          <p>NUC cần trực tuyến để truy cập bản ghi. Hãy thử làm mới sau.</p>
         </div>
       ) : (
         <div className="playback-layout">
@@ -340,9 +340,9 @@ export function Playback({ auth }: { auth: Auth }) {
             <p className="storage-note">
               <Icon name="drive" />
               <span>
-                Bản ghi lưu trên Air khoảng 24 giờ.
+                Bản ghi lưu trên NUC khoảng 24 giờ.
                 <br />
-                Air cần trực tuyến để xem hoặc tải video.
+                NUC cần trực tuyến để xem hoặc tải video.
               </span>
             </p>
           </div>

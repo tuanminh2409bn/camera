@@ -4,6 +4,8 @@ use File::Basename qw(dirname);
 use Cwd qw(abs_path);
 use File::Spec ();
 use Socket qw(AF_UNIX SOCK_STREAM PF_UNSPEC);
+use File::Temp qw(tempdir);
+use IO::Socket::INET ();
 use Time::HiRes ();
 require File::Spec->catfile(dirname(dirname(abs_path(__FILE__))),'scripts','camera_roaming_proxy.pl');
 
@@ -51,4 +53,56 @@ is($incoming,$request,'RTSP request bytes and client half-close forwarded');
 my $reply="RTSP/1.0 200 OK\r\n\r\n".pack('C*',36,0,0,4,0,1,254,255);syswrite($server,$reply);shutdown($server,1);
 my $received='';while(sysread($client,my $chunk,4096)){$received.=$chunk;}
 is($received,$reply,'binary interleaved media response forwarded unchanged');close $client;close $server;waitpid($pid,0);is($? >> 8,0,'bridge exits after both streams close');
+subtest 'two verified loopback streams can run at the same time' => sub {
+    my $workspace=abs_path(tempdir(CLEANUP=>1));
+    mkdir "$workspace/.local",0700 or die $!;
+    open my $config,'>',"$workspace/.local/camera-roaming.json" or die $!;
+    print {$config} JSON::PP::encode_json($identity);
+    close $config;chmod 0600,"$workspace/.local/camera-roaming.json" or die $!;
+
+    my $listen=sub {
+        my $listener=IO::Socket::INET->new(LocalAddr=>'127.0.0.1',LocalPort=>0,Listen=>4,Proto=>'tcp') or die $!;
+        return $listener;
+    };
+    my ($proxy,$camera)=($listen->(),$listen->());
+    my ($proxy_port,$camera_port)=($proxy->sockport,$camera->sockport);
+    my $pid=fork();die $! unless defined $pid;
+    if(!$pid){
+        close $camera;
+        my $socket_new=\&IO::Socket::INET::new;
+        no warnings 'redefine';
+        local *IO::Socket::INET::new=sub {
+            my ($class,%args)=@_;
+            return $proxy if exists $args{LocalAddr};
+            return $socket_new->($class,%args) unless exists $args{PeerAddr};
+            return $socket_new->($class,%args,PeerAddr=>'127.0.0.1',PeerPort=>$camera_port);
+        };
+        local *CameraRoamingProxy::resolve_camera=sub {return '127.0.0.1';};
+        my $result=eval{CameraRoamingProxy::run($workspace)};
+        POSIX::_exit($@ ? 1 : $result);
+    }
+    close $proxy;
+    my $connect=sub { return IO::Socket::INET->new(PeerAddr=>'127.0.0.1',PeerPort=>$proxy_port,Timeout=>1); };
+    my $accept=sub {return IO::Select->new($camera)->can_read(1) ? $camera->accept : undef;};
+    my $read=sub {
+        my ($socket)=@_;
+        return undef unless $socket && IO::Select->new($socket)->can_read(2);
+        my $bytes='';
+        return defined(sysread($socket,$bytes,4096)) ? $bytes : undef;
+    };
+    my ($first,$first_camera)=($connect->(),$accept->());
+    my ($second,$second_camera)=($connect->(),$accept->());
+    local $SIG{PIPE}='IGNORE';
+    syswrite($first,'main') if $first;
+    syswrite($second,'standard') if $second;
+    is($read->($first_camera),'main','first stream stays open when second connects');
+    is($read->($second_camera),'standard','second stream forwards independently');
+    my $third=$connect->();
+    is($read->($third),'','third connection is closed at the session limit');
+    kill 'TERM',$pid;
+    is($read->($first_camera),'','shutdown closes the first camera socket');
+    is($read->($second_camera),'','shutdown closes the second camera socket');
+    waitpid($pid,0);
+    is($?,0,'proxy reaps owned connections before shutdown');
+};
 done_testing;

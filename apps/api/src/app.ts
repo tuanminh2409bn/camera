@@ -11,6 +11,7 @@ import {
   pageInput,
   playbackInput,
   recordingInput,
+  liveQuality,
   uuid,
 } from "@devone/contracts";
 import type { Config } from "./config.js";
@@ -256,11 +257,32 @@ export async function buildApp(
     }
     return user;
   });
+  app.get("/api/live/qualities", async (request) => {
+    requirePermission(await authenticate(request), "canLive");
+    return {
+      qualities:
+        config.standardLiveEnabled && (await mediaGateway.standardReady())
+          ? ["standard", "source"]
+          : ["source"],
+    };
+  });
   app.post("/api/live/sessions", async (request, reply) => {
-    await authenticate(request);
+    requirePermission(await authenticate(request), "canLive");
+    const { quality } = z
+      .object({ quality: liveQuality.default("source") })
+      .parse(request.query);
     if (typeof request.body !== "string" || !request.body.startsWith("v=0"))
       throw new ApiFailure(422, "INVALID_SDP", "Yêu cầu video không hợp lệ.");
-    const result = await media.create(rawToken(request), request.body);
+    if (
+      quality === "standard" &&
+      (!config.standardLiveEnabled || !(await mediaGateway.standardReady()))
+    )
+      throw new ApiFailure(
+        409,
+        "LIVE_QUALITY_UNAVAILABLE",
+        "Luồng Tiêu chuẩn đang gián đoạn. Hãy chọn Nét nhất để xem.",
+      );
+    const result = await media.create(rawToken(request), request.body, quality);
     return reply
       .code(201)
       .header("Location", `/api/live/sessions/${result.id}`)

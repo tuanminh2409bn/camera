@@ -22,26 +22,41 @@ def account(raw):
     return user, password
 
 
-def air_config(source, playback):
+def air_config(source, playback, *, standard=False):
     user, password = account(playback)
     text = poc.render_mediamtx_config(source, target='native')
     text = text.replace('playback: no', 'playback: yes\nplaybackAddress: 127.0.0.1:9996')
     # Only the live path records. Global defaults remain record:false.
     text = text.replace('    record: no\n    maxReaders: 0', '\n'.join([
-        '    record: yes', '    recordPath: ./.local/recordings/%path/%Y-%m-%d_%H-%M-%S-%f_%z',
+        '    record: no' if standard else '    record: yes',
+        '    recordPath: ./.local/recordings/%path/%Y-%m-%d_%H-%M-%S-%f_%z',
         '    recordFormat: fmp4', '    recordPartDuration: 1s', '    recordSegmentDuration: 1m',
         '    recordMaxPartSize: 10M', '    recordDeleteAfter: 1d', '    maxReaders: 0']))
     playback_user = '\n'.join([
         '  - user: ' + json.dumps(user), '    pass: ' + json.dumps(password),
         "    ips: ['127.0.0.1', '::1']", '    permissions:', '      - action: playback', '        path: live', ''])
-    return text.replace('\npathDefaults:', '\n' + playback_user + '\npathDefaults:')
+    text = text.replace('\npathDefaults:', '\n' + playback_user + '\npathDefaults:')
+    if standard:
+        if (source['host'], source['port'], source['channel'], source['transport']) != ('127.0.0.1', 18556, '101', 'tcp'):
+            raise poc.PocError('Two live qualities require channel 101 via the verified loopback camera proxy.')
+        secondary = poc.validate_source_config({**source, 'channel': '102'})
+        text = text.replace('      - action: api',
+                            '      - action: read\n        path: live-standard\n      - action: api')
+        text += ('  live-standard:\n'
+                 '    source: ' + json.dumps(secondary['rtsp_url']) + '\n'
+                 '    sourceOnDemand: no\n'
+                 '    rtspTransport: tcp\n'
+                 '    record: no\n')
+    return text
 
 
-def server_config(backend, public_ip, *, audio=False):
+def server_config(backend, public_ip, *, audio=False, standard=False):
     user, password = account(backend)
     address = ipaddress.ip_address(public_ip)
     if not address.is_global or address.version != 4:
         raise poc.PocError('A public IPv4 address is required for deployment.')
+    if standard and not audio:
+        raise poc.PocError('Two live qualities require the loopback audio adapters.')
     # JSON is valid YAML, parsed natively by MediaMTX. Never send this file to Air.
     config = {
         'logLevel': 'warn', 'api': True, 'apiAddress': '127.0.0.1:9997',
@@ -65,6 +80,10 @@ def server_config(backend, public_ip, *, audio=False):
         config['authInternalUsers'].append({
             'user': 'any', 'pass': '', 'ips': ['127.0.0.1'],
             'permissions': [{'action': 'publish', 'path': 'live'}]})
+    if standard:
+        config['paths']['live-standard'] = {**config['paths']['live']}
+        for auth, action in zip(config['authInternalUsers'], ('read', 'publish')):
+            auth['permissions'].append({'action': action, 'path': 'live-standard'})
     return json.dumps(config, indent=2) + '\n'
 
 
@@ -86,15 +105,18 @@ def main():
     server.add_argument('--with-audio', action='store_true', help='Prepare loopback-only audio-adapter publishing')
     for child in (air, server):
         child.add_argument('--output', type=Path, required=True, help='New candidate file under .local/')
+        child.add_argument('--with-standard', action='store_true', help='Add the optional 720p camera substream')
     args = parser.parse_args()
     try:
         output = poc.validate_private_output_path(args.output, workspace_root=poc.REPO_ROOT)
         if output.exists():
             raise poc.PocError('Refusing to overwrite an existing file; choose a new candidate name.')
         if args.kind == 'air':
-            result = air_config(poc.load_source_file(args.source_file), read_private(args.playback_account))
+            result = air_config(poc.load_source_file(args.source_file), read_private(args.playback_account),
+                                standard=args.with_standard)
         else:
-            result = server_config(read_private(args.backend_account), args.public_ip, audio=args.with_audio)
+            result = server_config(read_private(args.backend_account), args.public_ip, audio=args.with_audio,
+                                   standard=args.with_standard)
         poc.atomic_write_private(output, result, workspace_root=poc.REPO_ROOT)
         print('Private candidate written. No service started or runtime changed.')
     except (poc.PocError, ValueError, OSError):

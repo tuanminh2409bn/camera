@@ -11,6 +11,7 @@ import { request, messageOf } from "./api";
 import { Icon } from "./icon";
 import { Operations } from "./operations";
 type Page<T> = { data: T[]; page: number; total: number; pageSize: number };
+const MIN_VIEWER_PASSWORD_LENGTH = 6;
 const labels = {
   canLive: "Trực tiếp",
   canPlayback: "Xem lại",
@@ -196,7 +197,7 @@ export function Admin({ auth }: { auth: Auth }) {
               {!recording
                 ? "Đang kiểm tra…"
                 : !recording.isOnline
-                  ? "Air mất kết nối"
+                  ? "NUC mất kết nối"
                   : recording.isPaused
                     ? "Tạm dừng an toàn"
                     : recording.authLatched
@@ -206,7 +207,7 @@ export function Admin({ auth }: { auth: Auth }) {
                         : recording.observed
                           ? "Đang ghi"
                           : "Đang tắt"}
-              <span>· Bản ghi lưu trên Air</span>
+              <span>· Bản ghi lưu trên NUC</span>
             </p>
             <span className="recording-detail">
               Yêu cầu: {recording ? (recording.desired ? "bật" : "tắt") : "…"}
@@ -271,7 +272,10 @@ export function Admin({ auth }: { auth: Auth }) {
               onSubmit={(e) => void create(e)}
             >
               <h2>Tạo người xem</h2>
-              <p>Cấp đúng quyền cần dùng. Mật khẩu có ít nhất 12 ký tự.</p>
+              <p>
+                Cấp đúng quyền cần dùng. Mật khẩu người xem có ít nhất{" "}
+                {MIN_VIEWER_PASSWORD_LENGTH} ký tự.
+              </p>
               <div className="form-grid">
                 <label>
                   Tên đăng nhập
@@ -291,7 +295,7 @@ export function Admin({ auth }: { auth: Auth }) {
                     name="password"
                     type="password"
                     required
-                    minLength={12}
+                    minLength={MIN_VIEWER_PASSWORD_LENGTH}
                     maxLength={256}
                     autoComplete="new-password"
                   />
@@ -516,7 +520,7 @@ export function Admin({ auth }: { auth: Auth }) {
                                     name="password"
                                     type="password"
                                     required
-                                    minLength={12}
+                                    minLength={MIN_VIEWER_PASSWORD_LENGTH}
                                     maxLength={256}
                                     autoComplete="new-password"
                                   />

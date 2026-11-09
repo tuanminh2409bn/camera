@@ -9,9 +9,9 @@ const labels: Record<OperationCode, string> = {
   MEDIA: "Hình trực tiếp",
   AUDIO: "Âm thanh trực tiếp",
   MEDIA_PROGRESS: "Luồng video đang cập nhật",
-  AIR: "Kết nối với Air",
+  AIR: "Kết nối với NUC",
   AIR_AUTH: "Xác thực camera",
-  AIR_DISK: "Dung lượng và bảo vệ ổ Air",
+  AIR_DISK: "Dung lượng và bảo vệ ổ NUC",
   RECORDING: "Ghi hình đúng yêu cầu",
   SERVER_DISK: "Dung lượng máy chủ",
   BACKUP: "Bản sao lưu hằng ngày",
@@ -107,7 +107,7 @@ export function Operations({ auth }: { auth: Auth }) {
             {alerts.length
               ? `${alerts.length} cảnh báo đang mở`
               : liveUnavailable
-                ? "Live hoặc kết nối Air đang bất thường. Bộ giám sát đang cập nhật."
+                ? "Live hoặc kết nối NUC đang bất thường. Bộ giám sát đang cập nhật."
                 : pending.length
                   ? `Đang xác minh ${pending.length} dấu hiệu bất thường`
                   : "Các kiểm tra hiện tại đều bình thường"}

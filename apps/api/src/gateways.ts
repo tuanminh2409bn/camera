@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { intervalsOutput, type RecordingStatus } from "@devone/contracts";
+import {
+  intervalsOutput,
+  type LiveQuality,
+  type RecordingStatus,
+} from "@devone/contracts";
 import type { Config } from "./config.js";
 import { offline } from "./errors.js";
 
@@ -8,7 +12,12 @@ export interface NativeSession {
   appSession: string | null;
 }
 export interface MediaGateway {
-  create(id: string, sdp: string): Promise<{ sdp: string; location: string }>;
+  standardReady(): Promise<boolean>;
+  create(
+    id: string,
+    sdp: string,
+    quality: LiveQuality,
+  ): Promise<{ sdp: string; location: string }>;
   close(location: string): Promise<void>;
   sessions(): Promise<NativeSession[]>;
   kick(id: string): Promise<void>;
@@ -25,7 +34,7 @@ export interface AirGateway {
   ): Promise<Response>;
 }
 const nativeLocation =
-  /^\/live\/whep\/[0-9a-f-]{36}(?:\?appSession=[0-9a-f-]{36})?$/;
+  /^\/(?:live|live-standard)\/whep\/[0-9a-f-]{36}(?:\?appSession=[0-9a-f-]{36})?$/;
 export class HttpMediaGateway implements MediaGateway {
   private auth: string;
   constructor(private config: Config) {
@@ -54,10 +63,12 @@ export class HttpMediaGateway implements MediaGateway {
   async create(
     id: string,
     sdp: string,
+    quality: LiveQuality,
   ): Promise<{ sdp: string; location: string }> {
+    const path = quality === "standard" ? "/live-standard/whep" : "/live/whep";
     const response = await this.request(
       this.config.mediaOrigin,
-      `/live/whep?appSession=${id}`,
+      `${path}?appSession=${id}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
@@ -69,13 +80,35 @@ export class HttpMediaGateway implements MediaGateway {
       throw offline();
     }
     const location = response.headers.get("location");
-    if (!location || !nativeLocation.test(location)) {
+    if (
+      !location ||
+      !location.startsWith(path + "/") ||
+      !nativeLocation.test(location)
+    ) {
       await response.body?.cancel();
       throw offline();
     }
     const answer = await response.text();
     if (!answer.startsWith("v=0") || answer.length > 131072) throw offline();
     return { sdp: answer, location };
+  }
+  async standardReady(): Promise<boolean> {
+    try {
+      const response = await this.request(
+        this.config.mediaApiOrigin,
+        "/v3/paths/get/live-standard",
+      );
+      if (!response.ok) {
+        await response.body?.cancel();
+        return false;
+      }
+      const state = z
+        .object({ ready: z.boolean() })
+        .safeParse(await response.json());
+      return state.success && state.data.ready;
+    } catch {
+      return false;
+    }
   }
   async close(location: string): Promise<void> {
     if (!nativeLocation.test(location))

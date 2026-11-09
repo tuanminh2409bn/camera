@@ -15,7 +15,7 @@ use Time::HiRes ();
 use Errno qw(EAGAIN EWOULDBLOCK EINTR);
 
 require File::Spec->catfile(dirname(abs_path(__FILE__)), 'air_recording_supervisor.pl');
-use constant { LISTEN_PORT => 18556, CAMERA_PORT => 554, BUFFER_LIMIT => 65536 };
+use constant { LISTEN_PORT => 18556, CAMERA_PORT => 554, BUFFER_LIMIT => 65536, MAX_SESSIONS => 2 };
 
 sub monotonic { Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()); }
 sub ipv4_number {
@@ -268,20 +268,33 @@ sub run {
     my $listener=IO::Socket::INET->new(LocalAddr=>'127.0.0.1',LocalPort=>LISTEN_PORT,Proto=>'tcp',Listen=>2,ReuseAddr=>1) or die "Proxy listener unavailable\n";
     AirRecordingSupervisor::_fd_cloexec($listener);
     my $selection=IO::Select->new($listener);my $stopped=0;local $SIG{TERM}=sub{$stopped=1;};local $SIG{INT}=sub{$stopped=1;};local $SIG{PIPE}='IGNORE';
-    my $hint=$identity->{lastKnownHost};my $next_attempt=0;
+    my $hint=$identity->{lastKnownHost};my $next_attempt=0;my %children;
     my $status=sub{my($state,$host)=@_;AirRecordingSupervisor::atomic_write_private_file($directory,'status.json',JSON::PP::encode_json({updatedAt=>AirRecordingSupervisor::_iso_utc(),state=>$state,address=>$host,pid=>0+$$}));};
     $status->('waiting_camera',undef);
     while(!$stopped){
+        my $had_connections=keys %children;
+        for my $pid(keys %children){delete $children{$pid} if waitpid($pid,WNOHANG)==$pid;}
+        $status->('waiting_camera',$hint) if $had_connections && !%children;
         next unless $selection->can_read(0.2);my $client=$listener->accept();next unless $client;AirRecordingSupervisor::_fd_cloexec($client);
-        if(monotonic()<$next_attempt){close $client;next;}
+        if(keys(%children)>=MAX_SESSIONS || monotonic()<$next_attempt){close $client;next;}
         my $host=resolve_camera($identity,$hint,active_networks());
-        if(!defined($host)){$status->('camera_not_verified',undef);$next_attempt=monotonic()+5;close $client;next;}
+        if($stopped){close $client;last;}
+        if(!defined($host)){$status->('camera_not_verified',undef) unless %children;$next_attempt=monotonic()+5;close $client;next;}
         my $upstream=IO::Socket::INET->new(PeerAddr=>$host,PeerPort=>CAMERA_PORT,Proto=>'tcp',Timeout=>3);
-        if(!$upstream){$status->('camera_unreachable',$host);$next_attempt=monotonic()+5;close $client;next;}
-        AirRecordingSupervisor::_fd_cloexec($upstream);$hint=$host;$status->('connected',$host);
-        bridge($client,$upstream,\$stopped);close $client;close $upstream;$status->('waiting_camera',$hint);
+        if(!$upstream){$status->('camera_unreachable',$host) unless %children;$next_attempt=monotonic()+5;close $client;next;}
+        my $pid=$stopped ? undef : fork();
+        if(defined($pid) && $pid==0){
+            close $listener;close $lock;
+            bridge($client,$upstream,\$stopped);
+            close $client;close $upstream;POSIX::_exit(0);
+        }
+        close $client;close $upstream;
+        if(defined($pid)){$children{$pid}=1;$hint=$host;$status->('connected',$host);}
     }
-    close $listener;$status->('stopped',undef);return 0;
+    close $listener;
+    kill 'TERM',keys %children if %children;
+    for my $pid(keys %children){1 while waitpid($pid,0)==-1 && $! == EINTR;}
+    $status->('stopped',undef);return 0;
 }
 package main;
 unless(caller){

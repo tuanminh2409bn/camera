@@ -638,6 +638,17 @@ subtest 'Actual v1.21.3 recovery log restores source readiness' => sub {
     );
 };
 
+subtest 'Optional source cannot mask primary readiness or bypass an auth stop' => sub {
+    for my $line ('INF [path live-standard] stream is available and online, 1 track (H264)',
+                  'ERR [path live-standard] [RTSP source] dial tcp: i/o timeout') {
+        is(AirRecordingSupervisor::classify_child_log_line($line), 'normal',
+            'secondary readiness and network failures do not affect the primary');
+    }
+    is(AirRecordingSupervisor::classify_child_log_line(
+        'ERR [path live-standard] [RTSP source] bad status code: 401 (Unauthorized)'),
+        'camera_auth_failure', 'secondary auth rejection still stops camera retries');
+};
+
 subtest 'Pause API cannot inherit curlrc or proxy routing' => sub {
     my $captured;
     {

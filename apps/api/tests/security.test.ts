@@ -15,9 +15,15 @@ import type {
 
 class Media implements MediaGateway {
   peers = new Map<string, string>();
+  qualities: string[] = [];
+  standardOnline = true;
   fail = false;
   wait: Promise<void> | null = null;
-  async create(id: string) {
+  async standardReady() {
+    return this.standardOnline;
+  }
+  async create(id: string, _sdp: string, quality?: string) {
+    if (quality) this.qualities.push(quality);
     if (this.wait) await this.wait;
     const native = randomUUID();
     this.peers.set(native, id);
@@ -242,6 +248,63 @@ test("200 concurrent reservations admitted, 201st rejected, independent of nativ
   if (failed[0]?.status === "rejected")
     assert.equal(failed[0].reason.code, "LIVE_CAPACITY");
   assert.equal(media.peers.size, 200);
+});
+test("live quality shares permissions and quota and preserves the default route", async () => {
+  await service.app.close();
+  service = await buildApp(
+    { ...config, standardLiveEnabled: true },
+    database.db,
+    media,
+    air,
+  );
+  const viewer = await user();
+  const denied = await user(false, {
+    live: false,
+    playback: true,
+    download: false,
+  });
+  const list = (principal: typeof viewer) =>
+    service.app.inject({
+      url: "/api/live/qualities",
+      cookies: principal.cookies,
+    });
+  const open = (principal: typeof viewer, query = "") =>
+    service.app.inject({
+      method: "POST",
+      url: "/api/live/sessions" + query,
+      headers: { ...principal.headers, "content-type": "application/sdp" },
+      cookies: principal.cookies,
+      payload: "v=0\r\n",
+    });
+  assert.equal((await list(denied)).statusCode, 403);
+  assert.deepEqual((await list(viewer)).json(), {
+    qualities: ["standard", "source"],
+  });
+  assert.equal((await open(denied, "?quality=standard")).statusCode, 403);
+  assert.equal((await open(viewer, "?quality=other")).statusCode, 422);
+  assert.equal(
+    (await open(viewer, "?quality=standard&quality=source")).statusCode,
+    422,
+  );
+  assert.equal((await open(viewer)).statusCode, 201);
+  media.standardOnline = false;
+  assert.deepEqual((await list(viewer)).json(), { qualities: ["source"] });
+  assert.equal(
+    (await open(viewer, "?quality=standard")).json().error.code,
+    "LIVE_QUALITY_UNAVAILABLE",
+  );
+  media.standardOnline = true;
+  const standard = await open(viewer, "?quality=standard");
+  assert.equal(standard.statusCode, 201);
+  assert.match(
+    String(standard.headers.location),
+    /^\/api\/live\/sessions\/[a-f0-9-]{36}$/,
+  );
+  assert.equal(
+    (await open(viewer, "?quality=source")).json().error.code,
+    "ACCOUNT_CAPACITY",
+  );
+  assert.deepEqual(media.qualities, ["source", "standard"]);
 });
 test("logout during native creation cannot activate an unauthorized stream", async () => {
   const viewer = await user();

@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 export const MAX_LIVE_SESSIONS = 200;
+export const liveQuality = z.enum(["standard", "source"]);
+export type LiveQuality = z.infer<typeof liveQuality>;
 export const uuid = z.uuid();
 export const username = z
   .string()
@@ -8,6 +10,7 @@ export const username = z
   .max(64)
   .regex(/^[a-zA-Z0-9._-]+$/);
 export const password = z.string().min(12).max(256);
+const viewerPassword = z.string().min(6).max(256);
 export const loginInput = z
   .object({
     username,
@@ -26,7 +29,7 @@ export const permissions = z.object({
 export const createViewerInput = permissions
   .extend({
     username,
-    password,
+    password: viewerPassword,
     maxLiveSessions: z.number().int().min(1).max(10).default(2),
   })
   .strict();
@@ -34,7 +37,7 @@ export const updateViewerInput = permissions
   .partial()
   .extend({
     isActive: z.boolean().optional(),
-    password: password.optional(),
+    password: viewerPassword.optional(),
     maxLiveSessions: z.number().int().min(1).max(10).optional(),
   })
   .strict()

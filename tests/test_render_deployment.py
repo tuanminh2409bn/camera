@@ -48,3 +48,28 @@ class DeploymentConfigTest(unittest.TestCase):
                 renderer.server_config(bad, '8.8.8.8')
         with self.assertRaises(poc.PocError):
             renderer.server_config({'username':'backend','password':'Fixture-password-123!'}, '127.0.0.1')
+
+    def test_standard_quality_uses_verified_proxy_and_disables_recording(self):
+        source = poc.validate_source_config({'scheme': 'rtsp', 'host': '127.0.0.1', 'port': 18556,
+            'channel': '101', 'username': 'fixture-user', 'password': 'Fixture-password-123!'})
+        account = {'username': 'backend', 'password': 'Fixture-password-123!'}
+        edge = renderer.air_config(source, account, standard=True)
+        self.assertNotIn('record: yes', edge)
+        self.assertIn('/Streaming/Channels/101', edge)
+        self.assertIn('  live-standard:', edge)
+        self.assertIn('@127.0.0.1:18556/Streaming/Channels/102', edge)
+        self.assertIn('action: read\n        path: live-standard', edge)
+        with self.assertRaises(poc.PocError):
+            renderer.air_config({**source, 'host': '192.168.1.64'}, account, standard=True)
+        with self.assertRaises(poc.PocError):
+            renderer.server_config(account, '8.8.8.8', standard=True)
+        server = json.loads(renderer.server_config(account, '8.8.8.8', audio=True, standard=True))
+        self.assertEqual(server['rtspAddress'], '127.0.0.1:18555')
+        self.assertFalse(server['paths']['live-standard']['record'])
+        for user, action in zip(server['authInternalUsers'], ('read', 'publish')):
+            self.assertIn({'action': action, 'path': 'live-standard'}, user['permissions'])
+
+        unit = (poc.REPO_ROOT / 'infra/server/devone-audio-standard.service.example').read_text()
+        self.assertIn('rtsp://127.0.0.1:18554/live-standard', unit)
+        self.assertIn('rtsp://127.0.0.1:18555/live-standard', unit)
+        self.assertIn('-c:v copy -c:a libopus', unit)

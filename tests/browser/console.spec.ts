@@ -71,6 +71,20 @@ test("login layout desktop/mobile, CSP and no browser errors", async ({
   expect(response?.headers()["content-security-policy"]).toContain(
     "'strict-dynamic'",
   );
+  const password = page.getByLabel("Mật khẩu", { exact: true });
+  await expect(password).toHaveAttribute("type", "password");
+  await password.fill("123456");
+  await password.press("Tab");
+  await expect(
+    page.getByRole("button", { name: "Hiện mật khẩu" }),
+  ).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(password).toHaveAttribute("type", "text");
+  await expect(password).toHaveValue("123456");
+  await page.getByRole("button", { name: "Ẩn mật khẩu" }).click();
+  await expect(password).toHaveAttribute("type", "password");
+  await expect(password).toHaveValue("123456");
+  await password.clear();
   await page.screenshot({
     path: ".local/browser-tests/login-desktop.png",
     fullPage: true,
@@ -96,7 +110,7 @@ test("login layout desktop/mobile, CSP and no browser errors", async ({
   ).toBe(true);
   expect(errors).toEqual([]);
 });
-test("live retains video and audio together and lets the viewer control mute", async ({
+test("live opens with sound and keeps sound on after restarting", async ({
   page,
 }) => {
   await login(page);
@@ -119,21 +133,15 @@ test("live retains video and audio together and lets the viewer control mute", a
       }),
     )
     .toEqual(["audio", "video"]);
-  await expect(video).toHaveJSProperty("muted", true);
-  const sound = page.getByRole("button", { name: "Bật âm thanh", exact: true });
-  await expect(sound).toBeEnabled();
-  await sound.click();
   await expect(video).toHaveJSProperty("muted", false);
-  const mute = page.getByRole("button", { name: "Tắt âm thanh", exact: true });
-  await expect(mute).toHaveAttribute("aria-pressed", "true");
-  await mute.click();
-  await expect(video).toHaveJSProperty("muted", true);
-  await video.evaluate((element) => {
-    if (element instanceof HTMLVideoElement) element.muted = false;
-  });
+  await expect(video).toHaveJSProperty("volume", 1);
+  await expect(video).toHaveJSProperty("controls", false);
+  await expect(
+    page.getByText("Âm thanh đang bật", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Tắt âm thanh", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 700 });
   await page.screenshot({
     path: ".local/browser-tests/live-audio-mobile.png",
@@ -144,13 +152,164 @@ test("live retains video and audio together and lets the viewer control mute", a
   await page
     .getByRole("button", { name: "Kết nối camera", exact: true })
     .click();
-  await expect(video).toHaveJSProperty("muted", true);
+  await expect(video).toHaveJSProperty("muted", false);
   await expect(
-    page.getByRole("button", { name: "Bật âm thanh", exact: true }),
-  ).toBeEnabled();
+    page.getByText("Âm thanh đang bật", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Dừng xem", exact: true }).click();
   await expect.poll(nativeCount).toBe(0);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+});
+test("viewer always receives source quality and can zoom or reset without reopening", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await login(page);
+  await expect(page.getByText("Nét nhất", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("combobox", { name: "Chất lượng hình ảnh" }),
+  ).toHaveCount(0);
+  const sessionRequests: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().includes("/api/live/sessions")
+    )
+      sessionRequests.push(request.url());
+  });
+  const start = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/live/sessions") &&
+      response.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Kết nối camera", exact: true })
+    .click();
+  expect((await start).status()).toBe(201);
+  const video = page.getByLabel("Video trực tiếp camera 01", { exact: true });
+  const zoom = page.getByRole("button", { name: "Phóng to", exact: true });
+  const reset = page.getByRole("button", {
+    name: "Đặt lại thu phóng",
+    exact: true,
+  });
+  await expect(zoom).toBeEnabled();
+  await zoom.click();
+  await expect(video).toHaveAttribute("data-zoom", "1.5");
+  await expect(video).toHaveCSS("transform", "matrix(1.5, 0, 0, 1.5, 0, 0)");
+  await reset.click();
+  await expect(video).toHaveCSS("transform", "none");
+  const bounds = await video.boundingBox();
+  if (!bounds) throw new Error("Video must be visible for pinch gestures");
+  const x = Math.round(bounds.x + bounds.width / 2);
+  const y = Math.round(bounds.y + bounds.height / 2);
+  const touch = await page.context().newCDPSession(page);
+  await touch.send("Emulation.setTouchEmulationEnabled", {
+    enabled: true,
+    maxTouchPoints: 2,
+  });
+  const points = (offset: number) => [
+    { id: 1, x: x - offset, y },
+    { id: 2, x: x + offset, y },
+  ];
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: points(30),
+  });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: points(60),
+  });
+  await expect(video).toHaveAttribute("data-zoom", "2");
+  expect(await page.evaluate(() => visualViewport?.scale)).toBe(1);
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: points(15),
+  });
+  await expect(video).toHaveCSS("transform", "none");
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await touch.detach();
+  expect(await nativeCount()).toBe(1);
+  expect(sessionRequests).toEqual(["http://127.0.0.1:3000/api/live/sessions"]);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  await page.getByRole("button", { name: "Dừng xem", exact: true }).click();
+  await expect.poll(nativeCount).toBe(0);
+});
+test("blocked sound playback can be started with one tap on the existing session", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      if (
+        this.getAttribute("aria-label") === "Video trực tiếp camera 01" &&
+        this.srcObject instanceof MediaStream &&
+        !this.dataset.allowAudioPlay
+      )
+        return Promise.reject(
+          new DOMException("User gesture required", "NotAllowedError"),
+        );
+      return play.call(this);
+    };
+  });
+  await login(page);
+  await page
+    .getByRole("button", { name: "Kết nối camera", exact: true })
+    .click();
+  const video = page.getByLabel("Video trực tiếp camera 01", { exact: true });
+  const play = page.getByRole("button", {
+    name: "Phát hình và tiếng",
+    exact: true,
+  });
+  await expect(play).toBeVisible();
+  await expect(video).toHaveJSProperty("muted", false);
+  await expect.poll(nativeCount).toBe(1);
+  await video.evaluate((element) => {
+    (element as HTMLVideoElement).dataset.allowAudioPlay = "true";
+  });
+  await play.click();
+  await expect(play).toHaveCount(0);
+  await expect(video).toHaveJSProperty("paused", false);
+  await expect(video).toHaveJSProperty("muted", false);
+  await expect.poll(nativeCount).toBe(1);
+  await page.getByRole("button", { name: "Dừng xem", exact: true }).click();
+  await expect.poll(nativeCount).toBe(0);
+});
+test("live uses native video fullscreen when the standard API is unavailable", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "fullscreenEnabled", { value: false });
+    Object.defineProperty(Element.prototype, "requestFullscreen", {
+      value: undefined,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "webkitEnterFullscreen", {
+      value(this: HTMLVideoElement) {
+        this.dataset.nativeFullscreen = String(
+          navigator.userActivation.isActive,
+        );
+      },
+    });
+  });
+  await login(page);
+  await page.getByRole("button", { name: "Kết nối camera" }).click();
+  const video = page.locator("video");
+  await expect
+    .poll(() => video.evaluate((el: HTMLVideoElement) => el.videoWidth))
+    .toBeGreaterThan(0);
+  await page
+    .getByRole("button", { name: "Toàn màn hình", exact: true })
+    .click();
+  await expect(video).toHaveAttribute("data-native-fullscreen", "true", {
+    timeout: 2000,
+  });
+  await expect.poll(nativeCount).toBe(1);
+  await page.getByRole("button", { name: "Dừng xem", exact: true }).click();
+  await expect.poll(nativeCount).toBe(0);
 });
 test("native H264 WebRTC decodes frames and DELETE closes the native session", async ({
   page,
@@ -200,13 +359,13 @@ test("native H264 WebRTC decodes frames and DELETE closes the native session", a
     route.fulfill({
       status: 503,
       json: {
-        error: { code: "AIR_OFFLINE", message: "Air đang ngoại tuyến." },
+        error: { code: "UPSTREAM_OFFLINE", message: "NUC đang ngoại tuyến." },
       },
     }),
   );
   await page.getByRole("button", { name: "Xem lại", exact: true }).click();
   await expect(page.getByRole("region").getByRole("alert")).toHaveText(
-    "Air đang ngoại tuyến.",
+    "NUC đang ngoại tuyến.",
   );
   await expect(page.locator("video")).toHaveCount(0);
   await page.unroute("**/api/recordings");
@@ -350,7 +509,7 @@ test("admin operational alerts show incidents, recovery and stale state on mobil
   });
   await expect(panel.getByRole("alert")).toHaveText("1 cảnh báo đang mở");
   await expect(
-    panel.getByRole("listitem").filter({ hasText: "Kết nối với Air" }),
+    panel.getByRole("listitem").filter({ hasText: "Kết nối với NUC" }),
   ).toBeVisible();
   await panel.getByText("Chi tiết 12 kiểm tra", { exact: true }).click();
   await expect(
@@ -483,9 +642,7 @@ test("admin creates viewer, changes rights, disables account and audits mutation
   await search.fill("");
   await addViewer.click();
   await page.getByLabel("Tên đăng nhập", { exact: true }).fill("playback-only");
-  await page
-    .getByLabel("Mật khẩu", { exact: true })
-    .fill("Playback-only-password-123!");
+  await page.getByLabel("Mật khẩu", { exact: true }).fill("123456");
   const createForm = page.locator("#create-viewer");
   await createForm.getByLabel("Trực tiếp", { exact: true }).uncheck();
   await createForm.getByLabel("Xem lại", { exact: true }).check();
@@ -498,7 +655,7 @@ test("admin creates viewer, changes rights, disables account and audits mutation
     const playbackPage = await playbackContext.newPage();
     await login(playbackPage, false, {
       username: "playback-only",
-      password: "Playback-only-password-123!",
+      password: "123456",
     });
     await expect(
       playbackPage.getByRole("heading", { name: "Xem lại", exact: true }),
@@ -516,6 +673,23 @@ test("admin creates viewer, changes rights, disables account and audits mutation
     await expect(playbackPage.locator("body")).not.toContainText(
       /dev[.\s]*one|secure live/i,
     );
+    const playbackRow = page.getByRole("row").filter({
+      has: page.getByText("playback-only", { exact: true }),
+    });
+    await playbackRow.getByText("Tùy chọn tài khoản", { exact: true }).click();
+    await playbackRow.getByLabel("Mật khẩu mới").fill("654321");
+    await playbackRow.getByRole("button", { name: "Đổi mật khẩu" }).click();
+    await expect(
+      page.getByText("Đã đổi mật khẩu và thu hồi phiên cũ.", { exact: true }),
+    ).toBeVisible();
+    await playbackPage.reload();
+    await expect(
+      playbackPage.getByRole("heading", { name: "Đăng nhập" }),
+    ).toBeVisible();
+    await login(playbackPage, false, {
+      username: "playback-only",
+      password: "654321",
+    });
     await playbackPage.getByRole("button", { name: "Đăng xuất" }).click();
   } finally {
     await playbackContext.close();

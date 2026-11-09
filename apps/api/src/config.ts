@@ -23,6 +23,7 @@ export const configSchema = z
     mediaApiOrigin: loopbackUrl,
     mediaUser: z.string().min(1),
     mediaPassword: z.string().min(16),
+    standardLiveEnabled: z.boolean().default(false),
     airOrigin: loopbackUrl,
     airToken: z.string().min(32),
     loginHours: z.number().int().min(1).max(12).default(12),

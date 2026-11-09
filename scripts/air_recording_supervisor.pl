@@ -620,6 +620,9 @@ sub classify_child_log_line {
         return 'camera_auth_failure';
     }
 
+    # The optional substream must not report primary recording-source readiness.
+    return 'normal' if $line =~ /\[path live-standard\]/i;
+
     # Source recovered / publishing ready
     if ($line =~ m{\[rtsp\s+source\]\s+(?:is\s+publishing|ready)\b}i
         || $line =~ m{\[path\s+live\].*\bis\s+publishing\b}i

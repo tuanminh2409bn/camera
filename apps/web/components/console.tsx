@@ -22,6 +22,7 @@ export function Console() {
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
+    [passwordVisible, setPasswordVisible] = useState(false),
     [tab, setTab] = useState<Tab>("live");
   useEffect(() => {
     void request<Auth>("/api/auth/session")
@@ -60,6 +61,7 @@ export function Console() {
     setError("");
     setBusy(true);
     const form = new FormData(event.currentTarget);
+    setPasswordVisible(false);
     try {
       const otp = String(form.get("otp") ?? "");
       const result = await request<Auth>("/api/auth/login", null, {
@@ -149,16 +151,30 @@ export function Console() {
                 maxLength={64}
               />
             </label>
-            <label>
-              Mật khẩu
-              <input
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                maxLength={256}
-              />
-            </label>
+            <div className="login-password">
+              <label htmlFor="login-password">Mật khẩu</label>
+              <div className="login-password-control">
+                <input
+                  id="login-password"
+                  name="password"
+                  type={passwordVisible ? "text" : "password"}
+                  autoComplete="current-password"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  maxLength={256}
+                />
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={passwordVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  aria-controls="login-password"
+                  onClick={() => setPasswordVisible((visible) => !visible)}
+                >
+                  <Icon name={passwordVisible ? "eye-off" : "eye"} />
+                </button>
+              </div>
+            </div>
             <label>
               Mã xác thực Admin{" "}
               <span className="label-hint">

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { MAX_LIVE_SESSIONS } from "@devone/contracts";
+import { MAX_LIVE_SESSIONS, type LiveQuality } from "@devone/contracts";
 import { type Db, transaction, lockMedia, audit } from "./db.js";
 import { identify, requirePermission, type Identity } from "./auth.js";
 import { ApiFailure, unauthorized } from "./errors.js";
@@ -21,6 +21,7 @@ export class MediaService {
   async create(
     token: string,
     sdp: string,
+    quality: LiveQuality = "source",
   ): Promise<{ id: string; sdp: string }> {
     const id = randomUUID();
     await transaction(this.db, async (tx) => {
@@ -52,7 +53,7 @@ export class MediaService {
       );
     });
     try {
-      const native = await this.gateway.create(id, sdp);
+      const native = await this.gateway.create(id, sdp, quality);
       // Persist the native handle even if a concurrent logout has revoked this reservation.
       await this.db.query(
         "UPDATE media_sessions SET native_location=$2 WHERE id=$1",
